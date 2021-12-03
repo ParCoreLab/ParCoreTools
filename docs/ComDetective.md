@@ -64,15 +64,20 @@ Communication matrices and ranking of data objects are dumped to the output fold
 If you don't pass a name for the output folder with "--output" or "-o" parameter, 
 the name of the output folder is "<timestamp>_timestamped_results". 
 
-Each application level matrix file is named as follow: \<executable name\>-\<pid of the process\>-\<matrix type\>_matrix.csv, 
-while data object level matrix file is named as follow: \<executable name\>-\<pid of the process\>-\<object id\>-\<matrix type\>_matrix_rank_<object rank\>.csv. 
+<br>
+<br>
+Each application level matrix file is named as follow: <executable name>-<pid of the process>-<matrix type>_matrix.csv, 
+while data object level matrix file is named as follow: <executable name>-<pid of the process>-<object id>-<matrix type>_matrix_rank_<object rank>.csv. 
 
-\<matrix type\> can be "as" for any communication among threads, "ts" for true sharing among threads, 
+<br>
+<br>
+
+<matrix type> can be "as" for any communication among threads, "ts" for true sharing among threads, 
 "fs" for false sharing among threads, "as_core" for any communication among cores, 
 "fs_core" for false sharing among cores, or "ts_core" for true sharing among cores. 
-\<object id\> is associated with the corresponding data object's name in file \<executable name\>-\<pid of the process\>-\<matrix type\>_object_ranking.txt. 
-In this txt file, all data objects are ranked with respect to the counts of communication whose type is indicated by the \<matrix type\>. 
-Total counts of communications are printed in the log file named \<executable name\>-*.log within the output folder.
+<object id> is associated with the corresponding data object's name in file <executable name>-<pid of the process>-<matrix type>_object_ranking.txt. 
+In this txt file, all data objects are ranked with respect to the counts of communication whose type is indicated by the <matrix type>. 
+Total counts of communications are printed in the log file named <executable name>-*.log within the output folder.
 
 
 # Attribution of Communications to Data Objects
@@ -80,6 +85,9 @@ Total counts of communications are printed in the log file named \<executable na
 Please note that if you enable attribution of communications to data objects by following 
 the instructions in ComDetective.Install, and try to detect every single dynamic memory allocation
 by passing "-t 0" parameter to ComDetective, the profiled program can run slowly.  
+
+<br>
+<br>
 
 The reason for this is that if the profiled program calls dynamic memory allocation functions 
 a lot of times (like millions of mallocs), ComDetective can be slowed down 
