@@ -7,6 +7,6 @@ You can access our tool <a href="https://github.com/ParCoreLab/hpctoolkit">here<
 To install the tool, you have to follow the steps listed in this <a href="https://parcorelab.github.io/ParCorePMUTool/docs/Installation.html">page</a>.
 
 This profiling tool allows you to use the following PMU-based performance analysis techniques that our group has developed and published.
-- ComDetective
-- ReuseTracker
+- <a href="https://parcorelab.github.io/ParCorePMUTool/docs/ComDetective.html">ComDetective</a>
+- <a href="https://parcorelab.github.io/ParCorePMUTool/docs/ReuseTracker.html">ReuseTracker</a>
 

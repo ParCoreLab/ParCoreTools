@@ -1,41 +1,5 @@
-Requirement
-===============
-Linux kernel version 5.0.0 or higher
-
-Installation
-===============
-1. Install hpctoolkit-externals from https://github.com/WitchTools/hpctoolkit-externals 
-by typing the following command in the directory of hpctoolkit-externals:
-	./configure && make && make install
-2. Install the custom libmonitor from https://github.com/WitchTools/libmonitor 
-by typing the following command in the directory of libmonitor:
-	./configure --prefix=<libmonitor-installation directory> && make && make install 
-3. Install HPCToolkit with ComDetective extensions from 
-https://github.com/ParCoreLab/hpctoolkit pointing to the installations of 
-hpctoolkit-externals and libmonitor from steps \#1 and \#2. 
-Assuming that the underlying architecture is x86_64 and compiler is gcc, this step is performed with the following commands.
-
-a. ./configure --prefix=<targeted installation directory for ComDetective> --with-externals=<directory of hpctoolkit externals>/x86_64-unknown-linux-gnu --with-libmonitor=<libmonitor-installation directory> 
-
-b. make
-
-c. make install
-
-4. To install ComDetective by enabling attribution of detected communications to data objects, 
-firstly install adamant from https://github.com/comdetective-tools/adamant 
-by typing the following command in the directory adamant/src:
-	make
-
-After adamant is installed, go to HPCToolkit's directory, and execute the following commands:
-
-a. ./configure --prefix=<targeted installation directory for ComDetective> --with-externals=<directory of hpctoolkit externals>/x86_64-unknown-linux-gnu --with-libmonitor=<libmonitor-installation directory> --with-libadm=<directory of adamant>
-
-b. make
-
-c. make install
-
-Usage
-=====
+Using ComDetective
+==================
 To run perf_event_open system call without having to use sudo access,
 set the value of perf_event_paranoid to -1 by typing the following command:
 sudo sysctl -w kernel.perf_event_paranoid=-1
