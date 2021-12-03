@@ -2,5 +2,9 @@
 
 ParCorePMUTool is a PMU-based profiling tool that our group has developed. These techniques are built on top of the <a href="https://github.com/HPCToolkit/hpctoolkit">HPCToolkit</a> performance analysis tool suite from Rice University.
 
-You can access our tool here.
+You can access our tool <a href="https://github.com/ParCoreLab/hpctoolkit">here</a>.
+
+This profiling tool allows you to use the following PMU-based performance analysis techniques that our group has developed and published.
+- ComDetective
+- ReuseTracker
 
