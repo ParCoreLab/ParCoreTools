@@ -2,7 +2,7 @@
 
 ParCoreTools is a collection of profiling tools developed by ParCoreLab at Koç University, Istanbul.
 
-The profiling tools included in ParCoreTools is as follows.
+The profiling tools included in ParCoreTools are as follows.
  
 - <a href="https://parcorelab.github.io/ParCorePMUTool/docs/ComDetective.html">ComDetective</a>
 
