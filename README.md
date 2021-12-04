@@ -1,4 +1,4 @@
-# ParCorePMUTool
+# ParCoreTools
 
 ParCoreTools is a collection of profiling tools developed by ParCoreLab at Koç University, Istanbul.
 
