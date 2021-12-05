@@ -25,36 +25,31 @@ number of watchpoints, minimum size of data objects to be detected, and name of 
 
 To attribute the detected communications to their locations in source code lines and program stacks, you need to take the following steps:
 
-<ol type="a">
-<li> Download and extract a binary release of hpcviewer from http://hpctoolkit.org/download/hpcviewer/latest/hpcviewer-linux.gtk.x86_64.tgz </li>
+1. Download and extract a binary release of hpcviewer from http://hpctoolkit.org/download/hpcviewer/latest/hpcviewer-linux.gtk.x86_64.tgz
  
-<li> Run ComDetective on a program to be profiled
+2. Run ComDetective on a program to be profiled
 
-<br> ComDetectiverun --output <name of output folder> <./your_executable> your_args </li>
+	ComDetectiverun --output <name of output folder> <./your_executable> your_args
 
-<li> Extract the static program structure from the profiled program by using hpcstruct
+3. Extract the static program structure from the profiled program by using hpcstruct
 
-<br> hpcstruct <./your_executable>
+	hpcstruct <./your_executable>
 
-<br> The output of hpcstruct is <./your_executable>.hpcstruct. </li>
+	The output of hpcstruct is <./your_executable>.hpcstruct.
 
-<li> Generate an experiment result database using hpcprof
+4. Generate an experiment result database using hpcprof
 
-<br> hpcprof -S <./your_executable>.hpcstruct -o <name of database> <name of output folder>
+	hpcprof -S <./your_executable>.hpcstruct -o <name of database> <name of output folder>
 
-<br> The output of hpcprof is a folder named <name of database>. </li>
+	The output of hpcprof is a folder named <name of database>.
 
-<li> Use hpcviewer to read the content of the experiment result database in a GUI interface
+5. Use hpcviewer to read the content of the experiment result database in a GUI interface
 
-<br> hpcviewer/hpcviewer <name of database>
+	hpcviewer/hpcviewer <name of database>
 
-<br> Information on program stack and source code lines is available in the Scope column, and
+	Information on program stack and source code lines is available in the Scope column, and
 information about communication counts detected on the corresponding program stack and 
 source code lines is available under "COMMUNICATION:Sum (I)" column.
-</li>
-</ol>
-</li>
-</ol>
 
 
 # Communication Matrices and Communication Ranks of Data Objects
