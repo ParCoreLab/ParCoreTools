@@ -7,7 +7,7 @@ sudo sysctl -w kernel.perf_event_paranoid=-1
 <ol type="1">
 <li>Compile the code that you want to profile using "-g" flag to allow for debugging.</li> 
 
-<li>To run ComDetective with default configuration (sampling period: 500K, bulletin board size: 127, number of watchpoints: 4, and name of output folder "<timestamp>_timestamped_results"):
+<li>To run ComDetective with default configuration (sampling period: 500K, bulletin board size: 127, number of watchpoints: 4, and name of output folder "\<timestamp\>_timestamped_results"):
 
 <br> ComDetectiverun <./your_executable> your_args</li>
 
