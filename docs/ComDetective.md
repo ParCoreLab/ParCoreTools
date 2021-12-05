@@ -15,7 +15,7 @@ by typing the following command in the directory of libmonitor:
 3. Install HPCToolkit with ComDetective extensions from
 	https://github.com/ParCoreLab/hpctoolkit pointing to the installations of hpctoolkit-externals and libmonitor from steps \#1 and \#2. Assuming that the underlying architecture is x86_64 and compiler is gcc, this step is performed with the following commands.
 
-	a. ./configure \-\-prefix=<targeted installation directory for ComDetective> --with-externals=<directory of hpctoolkit externals>/x86_64-unknown-linux-gnu --with-libmonitor=<libmonitor-installation directory>
+	a. ./configure \-\-prefix=\<targeted installation directory for ComDetective\> --with-externals=\<directory of hpctoolkit externals\>/x86_64-unknown-linux-gnu --with-libmonitor=\<libmonitor-installation directory\>
 
 	b. make
 
@@ -82,7 +82,7 @@ If you don't pass a name for the output folder with "--output" or "-o" parameter
 the name of the output folder is "\<timestamp\>_timestamped_results". 
 
 Each application level matrix file is named as follow: \<executable name\>-\<pid of the process\>-\<matrix type\>_matrix.csv, 
-while data object level matrix file is named as follow: \<executable name\>-\<pid of the process\>-\<object id\>-\<matrix type\>_matrix_rank_<object rank\>.csv. 
+while data object level matrix file is named as follow: \<executable name\>-\<pid of the process\>-\<object id\>-\<matrix type\>\_matrix_rank\_<object rank\>.csv. 
 
 \<matrix type\> can be "as" for any communication among threads, "ts" for true sharing among threads, 
 "fs" for false sharing among threads, "as_core" for any communication among cores, 
