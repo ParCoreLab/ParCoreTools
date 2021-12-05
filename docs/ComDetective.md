@@ -56,7 +56,7 @@ source code lines is available under "COMMUNICATION:Sum (I)" column.
 
 Communication matrices and ranking of data objects are dumped to the output folder. 
 If you don't pass a name for the output folder with "--output" or "-o" parameter, 
-the name of the output folder is "<timestamp>_timestamped_results". 
+the name of the output folder is "\<timestamp\>_timestamped_results". 
 
 Each application level matrix file is named as follow: \<executable name\>-\<pid of the process\>-\<matrix type\>_matrix.csv, 
 while data object level matrix file is named as follow: \<executable name\>-\<pid of the process\>-\<object id\>-\<matrix type\>_matrix_rank_<object rank\>.csv. 
