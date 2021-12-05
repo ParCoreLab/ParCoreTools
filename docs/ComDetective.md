@@ -4,27 +4,26 @@ To run perf_event_open system call without having to use sudo access,
 set the value of perf_event_paranoid to -1 by typing the following command:
 sudo sysctl -w kernel.perf_event_paranoid=-1
 
-<ol type="1">
-<li>Compile the code that you want to profile using "-g" flag to allow for debugging.</li> 
+1. Compile the code that you want to profile using "-g" flag to allow for debugging.</li> 
 
-<li>To run ComDetective with default configuration (sampling period: 500K, bulletin board size: 127, number of watchpoints: 4, and name of output folder "\<timestamp\>_timestamped_results"):
+2. To run ComDetective with default configuration (sampling period: 500K, bulletin board size: 127, number of watchpoints: 4, and name of output folder "\<timestamp\>_timestamped_results"):
 
-<br> ComDetectiverun <./your_executable> your_args</li>
+ComDetectiverun <./your_executable> your_args
 
-<li>To run ComDetective with custom configuration (user-chosen sampling period, bulletin board size, 
+3. To run ComDetective with custom configuration (user-chosen sampling period, bulletin board size, 
 number of watchpoints, minimum size of data objects to be detected, and name of output folder):
 
-<br> ComDetectiverun --period <sampling rate> --bulletin-board-size <bulletin board size> --debug-register-size <number of debug registers> --object-size-threshold <minimum number of bytes of detectable objects> --output <name of output folder> <./your_executable> your_args
+ComDetectiverun --period <sampling rate> --bulletin-board-size <bulletin board size> --debug-register-size <number of debug registers> --object-size-threshold <minimum number of bytes of detectable objects> --output <name of output folder> <./your_executable> your_args
 
-<br> or
+or
 
-<br> ComDetectiverun -p <sampling rate> -b <bulletin board size> -d <number of debug registers> -t <minimum number of bytes of detectable objects> -o <name of output folder> <./your_executable> args_for_executable</li>
+ComDetectiverun -p <sampling rate> -b <bulletin board size> -d <number of debug registers> -t <minimum number of bytes of detectable objects> -o <name of output folder> <./your_executable> args_for_executable
 
-<li>To monitor a program that has multiple processes (e.g. an MPI program):
+To monitor a program that has multiple processes (e.g. an MPI program):
 
-<br>mpirun -n <process count> ComDetectiverun <./your_executable> your_args</li>
+mpirun -n <process count> ComDetectiverun <./your_executable> your_args
 
-<li>To attribute the detected communications to their locations in source code lines and program stacks, you need to take the following steps:
+To attribute the detected communications to their locations in source code lines and program stacks, you need to take the following steps:
 
 <ol type="a">
 <li> Download and extract a binary release of hpcviewer from http://hpctoolkit.org/download/hpcviewer/latest/hpcviewer-linux.gtk.x86_64.tgz </li>
