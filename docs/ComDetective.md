@@ -8,20 +8,20 @@ sudo sysctl -w kernel.perf_event_paranoid=-1
 
 2. To run ComDetective with default configuration (sampling period: 500K, bulletin board size: 127, number of watchpoints: 4, and name of output folder "\<timestamp\>_timestamped_results"):
 
-ComDetectiverun <./your_executable> your_args
+	ComDetectiverun <./your_executable> your_args
 
 3. To run ComDetective with custom configuration (user-chosen sampling period, bulletin board size, 
 number of watchpoints, minimum size of data objects to be detected, and name of output folder):
 
-ComDetectiverun --period <sampling rate> --bulletin-board-size <bulletin board size> --debug-register-size <number of debug registers> --object-size-threshold <minimum number of bytes of detectable objects> --output <name of output folder> <./your_executable> your_args
+	ComDetectiverun --period \<sampling rate\> --bulletin-board-size \<bulletin board size\> --debug-register-size \<number of debug registers\> --object-size-threshold \<minimum number of bytes of detectable objects\> --output \<name of output folder\> <./your_executable> your_args
 
-or
+	or
 
-ComDetectiverun -p <sampling rate> -b <bulletin board size> -d <number of debug registers> -t <minimum number of bytes of detectable objects> -o <name of output folder> <./your_executable> args_for_executable
+	ComDetectiverun -p \<sampling rate\> -b \<bulletin board size\> -d \<number of debug registers\> -t \<minimum number of bytes of detectable objects\> -o \<name of output folder\> <./your_executable> args_for_executable
 
-To monitor a program that has multiple processes (e.g. an MPI program):
+	To monitor a program that has multiple processes (e.g. an MPI program):
 
-mpirun -n <process count> ComDetectiverun <./your_executable> your_args
+	mpirun -n \<process count\> ComDetectiverun <./your_executable> your_args
 
 To attribute the detected communications to their locations in source code lines and program stacks, you need to take the following steps:
 
