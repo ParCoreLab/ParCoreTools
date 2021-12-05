@@ -1,4 +1,4 @@
-# Using ComDetective
+# Usage
 
 To run perf_event_open system call without having to use sudo access,
 set the value of perf_event_paranoid to -1 by typing the following command:
