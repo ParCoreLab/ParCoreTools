@@ -1,4 +1,27 @@
-# Usage
+# ComDetective
+
+## Requirement
+
+Linux kernel version 5.0.0 or higher
+
+## Installation
+
+1. Install hpctoolkit-externals from https://github.com/WitchTools/hpctoolkit-externals
+by typing the following command in the directory of hpctoolkit-externals:
+        ./configure && make && make install
+2. Install the custom libmonitor from https://github.com/WitchTools/libmonitor
+by typing the following command in the directory of libmonitor:
+        ./configure \-\-prefix=<libmonitor-installation directory> && make && make install
+3. Install ParCorePMUTool from
+	https://github.com/ParCoreLab/hpctoolkit pointing to the installations of hpctoolkit-externals and libmonitor from steps \#1 and \#2. Assuming that the underlying architecture is x86_64 and compiler is gcc, this step is performed with the following commands.
+
+	a. ./configure \-\-prefix=<targeted installation directory for ComDetective> --with-externals=<directory of hpctoolkit externals>/x86_64-unknown-linux-gnu --with-libmonitor=<libmonitor-installation directory>
+
+	b. make
+
+	c. make install
+
+## Usage
 
 To run perf_event_open system call without having to use sudo access,
 set the value of perf_event_paranoid to -1 by typing the following command:
@@ -52,7 +75,7 @@ information about communication counts detected on the corresponding program sta
 source code lines is available under "COMMUNICATION:Sum (I)" column.
 
 
-# Communication Matrices and Communication Ranks of Data Objects
+## Communication Matrices and Communication Ranks of Data Objects
 
 Communication matrices and ranking of data objects are dumped to the output folder. 
 If you don't pass a name for the output folder with "--output" or "-o" parameter, 
@@ -69,7 +92,7 @@ In this txt file, all data objects are ranked with respect to the counts of comm
 Total counts of communications are printed in the log file named \<executable name\>-*.log within the output folder.
 
 
-# Attribution of Communications to Data Objects
+## Attribution of Communications to Data Objects
 
 Please note that if you enable attribution of communications to data objects by following 
 the instructions in ComDetective.Install, and try to detect every single dynamic memory allocation
