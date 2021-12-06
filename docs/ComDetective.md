@@ -62,13 +62,13 @@ To attribute the detected communications to their locations in source code lines
 
 4. Generate an experiment result database using hpcprof
 
-	hpcprof -S <./your_executable>.hpcstruct -o <name of database> <name of output folder>
+	hpcprof -S <./your_executable>.hpcstruct -o \<name of database\> \<name of output folder\>
 
-	The output of hpcprof is a folder named <name of database>.
+	The output of hpcprof is a folder named \<name of database\>.
 
 5. Use hpcviewer to read the content of the experiment result database in a GUI interface
 
-	hpcviewer/hpcviewer <name of database>
+	hpcviewer/hpcviewer \<name of database\>
 
 	Information on program stack and source code lines is available in the Scope column, and
 information about communication counts detected on the corresponding program stack and 
