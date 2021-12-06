@@ -15,5 +15,7 @@ Published in M. A. Sasongko, M. Chabbi, M. B. Marzijarani, and D. Unat. "ReuseTr
 - [ComScribe](https://github.com/ParCoreLab/ComScribe/) ([Paper 1](https://link.springer.com/chapter/10.1007/978-3-030-71058-3_10), [Paper 2](https://arxiv.org/abs/2110.10401))
 
 Published in: 
+
 1. P. Akhtar, E. Tezcan, F. M. Qararyah, and D. Unat. "ComScribe: Identifying Intra-node GPU Communication", 2020 International Symposium on Benchmarking, Measuring and Optimization, November 2020.
+
 2. M. A. Soyturk, P. Akhtar, E. Tezcan, and D. Unat. "Monitoring Collective Communication Among GPUs", CoRR abs/2110.10401, 2021
