@@ -11,11 +11,11 @@ by typing the following command in the directory of hpctoolkit-externals:
         ./configure && make && make install
 2. Install the custom libmonitor from https://github.com/WitchTools/libmonitor
 by typing the following command in the directory of libmonitor:
-        ./configure \-\-prefix=<libmonitor-installation directory> && make && make install
+        ./configure \-\-prefix=\<libmonitor-installation directory\> && make && make install
 3. Install HPCToolkit with ComDetective extensions from
 	https://github.com/ParCoreLab/hpctoolkit pointing to the installations of hpctoolkit-externals and libmonitor from steps \#1 and \#2. Assuming that the underlying architecture is x86_64 and compiler is gcc, this step is performed with the following commands.
 
-	a. ./configure \-\-prefix=\<targeted installation directory for ComDetective\> --with-externals=\<directory of hpctoolkit externals\>/x86_64-unknown-linux-gnu --with-libmonitor=\<libmonitor-installation directory\>
+	a. ./configure \-\-prefix=\<targeted installation directory for ComDetective\> \-\-with-externals=\<directory of hpctoolkit externals\>/x86_64-unknown-linux-gnu \-\-with-libmonitor=\<libmonitor-installation directory\>
 
 	b. make
 
@@ -36,7 +36,7 @@ sudo sysctl -w kernel.perf_event_paranoid=-1
 3. To run ComDetective with custom configuration (user-chosen sampling period, bulletin board size, 
 number of watchpoints, minimum size of data objects to be detected, and name of output folder):
 
-	ComDetectiverun --period \<sampling rate\> --bulletin-board-size \<bulletin board size\> --debug-register-size \<number of debug registers\> --object-size-threshold \<minimum number of bytes of detectable objects\> --output \<name of output folder\> <./your_executable> your_args
+	ComDetectiverun \-\-period \<sampling rate\> \-\-bulletin-board-size \<bulletin board size\> \-\-debug-register-size \<number of debug registers\> \-\-object-size-threshold \<minimum number of bytes of detectable objects\> \-\-output \<name of output folder\> <./your_executable> your_args
 
 	or
 
@@ -52,7 +52,7 @@ To attribute the detected communications to their locations in source code lines
  
 2. Run ComDetective on a program to be profiled
 
-	ComDetectiverun --output <name of output folder> <./your_executable> your_args
+	ComDetectiverun \-\-output <name of output folder> <./your_executable> your_args
 
 3. Extract the static program structure from the profiled program by using hpcstruct
 
