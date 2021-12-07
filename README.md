@@ -10,7 +10,7 @@ Published in M. A. Sasongko, P. Akhtar, M. Chabbi, D. Unat, "[ComDetective: A Li
 
 - [ReuseTracker](docs/ReuseTracker.md)
 
-Published in M. A. Sasongko, M. Chabbi, M. B. Marzijarani, and D. Unat. "[ReuseTracker: Fast Yet Accurate Multicore Reuse Distance Analyzer](https://dl.acm.org/doi/10.1145/3484199)", ACM Trans. Arch. Code Optim. 1, 1, Article 1 (January 2021).
+Published in M. A. Sasongko, M. Chabbi, M. B. Marzijarani, and D. Unat. "[ReuseTracker: Fast Yet Accurate Multicore Reuse Distance Analyzer](https://dl.acm.org/doi/10.1145/3484199)", ACM Trans. Arch. Code Optim. 19, 1, Article 3 (March 2022).
 
 - [ComScribe](https://github.com/ParCoreLab/ComScribe/)
 
