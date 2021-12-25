@@ -1,6 +1,6 @@
 # ParCoreTools
 
-ParCoreTools is a collection of profiling tools developed by [ParCoreLab](https://parcorelab.ku.edu.tr/) at Koç University, Istanbul.
+ParCoreTools is a suite of profiling tools developed by [ParCoreLab](https://parcorelab.ku.edu.tr/) at Koç University, Istanbul.
 
 The profiling tools included in ParCoreTools are as follows.
 
