@@ -14,7 +14,7 @@ Its accuracy verification benchmarks can be found [here](https://github.com/ParC
 Published in M. A. Sasongko, M. Chabbi, M. B. Marzijarani, and D. Unat. "[ReuseTracker: Fast Yet Accurate Multicore Reuse Distance Analyzer](https://dl.acm.org/doi/10.1145/3484199)", ACM Trans. Arch. Code Optim, Vol. 19, Issue 1, Article 3, December 2021.
 Information on how to reproduce the results reported on the paper, and the used accuracy verification benchmarks can be found [here](https://github.com/ParCoreLab/ReuseTracker).
 
-- [ComScribe](https://github.com/ParCoreLab/ComScribe/)
+- [ComScribe](https://github.com/ParCoreLab/ComScribe/): Inter-GPU Communication Analyzer for Multi-GPU Applications
 
 Published in: 
 
