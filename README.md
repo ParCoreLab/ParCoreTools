@@ -26,4 +26,4 @@ These works are supported by:
 
 1. The Scientific and Technological Research Council of Turkey (TUBITAK), Grant no. 215E193
 2. The Scientific and Technological Research Council of Turkey (TUBITAK), Grant no. 120E492
-3. The Royal Society-Newton Advanced Fellowship.
+3. The Royal Society-Newton Advanced Fellowship
