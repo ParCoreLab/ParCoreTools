@@ -20,4 +20,10 @@ Published in:
 
 1. P. Akhtar, E. Tezcan, F. M. Qararyah, and D. Unat. "[ComScribe: Identifying Intra-node GPU Communication", 2020 International Symposium on Benchmarking, Measuring and Optimization](https://link.springer.com/chapter/10.1007/978-3-030-71058-3_10), November 2020.
 
-2. M. A. Soyturk, P. Akhtar, E. Tezcan, and D. Unat. "[Monitoring Collective Communication Among GPUs](https://arxiv.org/abs/2110.10401)", CoRR abs/2110.10401, 2021.
+2. M. A. Soyturk, P. Akhtar, E. Tezcan, and D. Unat. "[Monitoring Collective Communication Among GPUs](https://arxiv.org/abs/2110.10401)", CoRR abs/2110.10401, 2021
+
+These works are supported by:
+
+1. The Scientific and Technological Research Council of Turkey (TUBITAK), Grant no. 215E193
+2. The Scientific and Technological Research Council of Turkey (TUBITAK), Grant no. 120E492
+3. The Royal Society-Newton Advanced Fellowship.
