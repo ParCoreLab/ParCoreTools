@@ -1,6 +1,6 @@
 # ParCoreTools
 
-ParCoreTools is a suite of profiling tools developed by [ParCoreLab](https://parcorelab.ku.edu.tr/) at Koç University, Istanbul.
+ParCoreTools is a suite of profiling tools and benchmarks developed by [ParCoreLab](https://parcorelab.ku.edu.tr/) at Koç University, Istanbul.
 
 The profiling tools included in ParCoreTools are as follows.
 
@@ -21,6 +21,12 @@ Published in:
 1. P. Akhtar, E. Tezcan, F. M. Qararyah, and D. Unat. "[ComScribe: Identifying Intra-node GPU Communication", 2020 International Symposium on Benchmarking, Measuring and Optimization](https://link.springer.com/chapter/10.1007/978-3-030-71058-3_10), November 2020.
 
 2. M. A. Soyturk, P. Akhtar, E. Tezcan, and D. Unat. "[Monitoring Collective Communication Among GPUs](https://arxiv.org/abs/2110.10401)", CoRR abs/2110.10401, 2021
+
+
+The benchmarks included in ParCoreTools are as follows.
+
+- [pes-benchs](https://github.com/ParCoreLab/pes-benchs): A benchmark suite that evaluates precise event sampling features.
+
 
 These works are supported by:
 
