@@ -27,6 +27,10 @@ The benchmarks included in ParCoreTools are as follows.
 
 - [pes-benchs](https://github.com/ParCoreLab/pes-benchs): A benchmark suite that evaluates precise event sampling features.
 
+- [comdetective-benchs](https://github.com/ParCoreLab/accuracy-verification-microbenchmarks): A benchmark suite that evaluates the accuracy of inter-thread communication analyzers.
+
+- [reuse-benchs](https://github.com/ParCoreLab/ReuseTracker/tree/master/reuse-invalidation-benchs): A benchmark suite that evaluates the accuracy of reuse distance analyzers.
+
 
 These works are supported by:
 
