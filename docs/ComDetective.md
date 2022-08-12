@@ -2,10 +2,14 @@
 
 ## Requirement
 
-Linux kernel version 5.0.0 or higher
+- Linux kernel version 5.0.0 or higher
+- To run perf_event_open system call without having to use sudo access,
+set the value of perf_event_paranoid to -1 by typing the following command:
+sudo sysctl -w kernel.perf_event_paranoid=-1
 
 ## Installation
 
+0. (In AMD) Install the Linux kernel module for IBS from https://github.com/ParCoreLab/AMD_IBS_Toolkit
 1. Install hpctoolkit-externals from https://github.com/WitchTools/hpctoolkit-externals
 by typing the following command in the directory of hpctoolkit-externals:
         ./configure && make && make install
@@ -21,57 +25,72 @@ by typing the following command in the directory of libmonitor:
 
 	c. make install
 
-## Usage
 
-To run perf_event_open system call without having to use sudo access,
-set the value of perf_event_paranoid to -1 by typing the following command:
-sudo sysctl -w kernel.perf_event_paranoid=-1
+## Usage on Intel
 
-1. Compile the code that you want to profile using "-g" flag to allow for debugging.</li> 
+1. To run ComDetective with default configuration (sampling period: 500K, bulletin board size: 127, number of watchpoints: 4, and name of output folder "<timestamp>_timestamped_results"):
 
-2. To run ComDetective with default configuration (sampling period: 500K, bulletin board size: 127, number of watchpoints: 4, and name of output folder "\<timestamp\>_timestamped_results"):
+ComDetectiverun <./your_executable> your_args
 
-	ComDetectiverun <./your_executable> your_args
-
-3. To run ComDetective with custom configuration (user-chosen sampling period, bulletin board size, 
+2. To run ComDetective with custom configuration (user-chosen sampling period, bulletin board size,
 number of watchpoints, minimum size of data objects to be detected, and name of output folder):
 
-	ComDetectiverun \-\-period \<sampling rate\> \-\-bulletin-board-size \<bulletin board size\> \-\-debug-register-size \<number of debug registers\> \-\-object-size-threshold \<minimum number of bytes of detectable objects\> \-\-output \<name of output folder\> <./your_executable> your_args
+ComDetectiverun --period <sampling_period> --bulletin-board-size <bulletin board size> --debug-register-size <number of debug registers> --object-size-threshold <minimum number of bytes of detectable objects> --output <name of output folder> <./your_executable> your_args
 
-	or
+or
 
-	ComDetectiverun -p \<sampling rate\> -b \<bulletin board size\> -d \<number of debug registers\> -t \<minimum number of bytes of detectable objects\> -o \<name of output folder\> <./your_executable> args_for_executable
+ComDetectiverun -p <sampling_period> -b <bulletin board size> -d <number of debug registers> -t <minimum number of bytes of detectable objects> -o <name of output folder> <./your_executable> args_for_executable
 
-	To monitor a program that has multiple processes (e.g. an MPI program):
+3. To monitor a program that has multiple processes (e.g. an MPI program):
 
-	mpirun -n \<process count\> ComDetectiverun <./your_executable> your_args
+mpirun -n <process count> ComDetectiverun <./your_executable> your_args
 
-To attribute the detected communications to their locations in source code lines and program stacks, you need to take the following steps:
 
-1. Download and extract a binary release of hpcviewer from http://hpctoolkit.org/download/hpcviewer/latest/hpcviewer-linux.gtk.x86_64.tgz
- 
-2. Run ComDetective on a program to be profiled
+## Usage on AMD
 
-	ComDetectiverun \-\-output <name of output folder> <./your_executable> your_args
+1. To run ComDetective in an AMD machine with user-chosen sampling period:
 
-3. Extract the static program structure from the profiled program by using hpcstruct
+hpcrun -e WP_AMD_COMM -e IBS_OP@<sampling_period> -o <name_of_output_folder> <./your_executable> your_args
 
-	hpcstruct <./your_executable>
 
-	The output of hpcstruct is <./your_executable>.hpcstruct.
+## Attribution to Locations in Source Code
 
-4. Generate an experiment result database using hpcprof
+1. Compile the code that you want to profile using "-g" flag to allow for debugging.
 
-	hpcprof -S <./your_executable>.hpcstruct -o \<name of database\> \<name of output folder\>
+2. To attribute the detected communications to their locations in source code lines and program stacks,
+you need to take the following steps:
 
-	The output of hpcprof is a folder named \<name of database\>.
+a. Download and extract a binary release of hpcviewer from
+http://hpctoolkit.org/download/hpcviewer/latest/hpcviewer-linux.gtk.x86_64.tgz
 
-5. Use hpcviewer to read the content of the experiment result database in a GUI interface
+b. Run ComDetective on a program to be profiled
 
-	hpcviewer/hpcviewer \<name of database\>
+In Intel:
 
-	Information on program stack and source code lines is available in the Scope column, and
-information about communication counts detected on the corresponding program stack and 
+ComDetectiverun --output <name of output folder> <./your_executable> your_args
+
+In AMD:
+
+hpcrun -e WP_AMD_COMM -e IBS_OP@<sampling_period> -o <name_of_output_folder> <./your_executable> your_args
+
+c. Extract the static program structure from the profiled program by using hpcstruct
+
+hpcstruct <./your_executable>
+
+The output of hpcstruct is <./your_executable>.hpcstruct.
+
+d. Generate an experiment result database using hpcprof
+
+hpcprof -S <./your_executable>.hpcstruct -o <name of database> <name of output folder>
+
+The output of hpcprof is a folder named <name of database>.
+
+e. Use hpcviewer to read the content of the experiment result database in a GUI interface
+
+hpcviewer/hpcviewer <name of database>
+
+Information on program stack and source code lines is available in the Scope column, and
+information about communication counts detected on the corresponding program stack and
 source code lines is available under "COMMUNICATION:Sum (I)" column.
 
 

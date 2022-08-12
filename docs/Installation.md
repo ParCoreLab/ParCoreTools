@@ -4,6 +4,7 @@ Linux kernel version 5.0.0 or higher
 
 Installation
 ===============
+0. (In AMD) Install the Linux kernel module for IBS from https://github.com/ParCoreLab/AMD_IBS_Toolkit
 1. Install hpctoolkit-externals from https://github.com/WitchTools/hpctoolkit-externals
 by typing the following command in the directory of hpctoolkit-externals:
         ./configure && make && make install
