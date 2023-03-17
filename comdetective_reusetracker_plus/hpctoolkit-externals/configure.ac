@@ -1,0 +1,1845 @@
+dnl
+dnl  Externals configure.
+dnl
+dnl  Copyright (c) 2008-2019, Rice University.
+dnl  All rights reserved.
+dnl
+dnl  Redistribution and use in source and binary forms, with or without
+dnl  modification, are permitted provided that the following conditions are
+dnl  met:
+dnl
+dnl  * Redistributions of source code must retain the above copyright
+dnl    notice, this list of conditions and the following disclaimer.
+dnl
+dnl  * Redistributions in binary form must reproduce the above copyright
+dnl    notice, this list of conditions and the following disclaimer in the
+dnl    documentation and/or other materials provided with the distribution.
+dnl
+dnl  * Neither the name of Rice University (RICE) nor the names of its
+dnl    contributors may be used to endorse or promote products derived from
+dnl    this software without specific prior written permission.
+dnl
+dnl  This software is provided by RICE and contributors "as is" and any
+dnl  express or implied warranties, including, but not limited to, the
+dnl  implied warranties of merchantability and fitness for a particular
+dnl  purpose are disclaimed. In no event shall RICE or contributors be
+dnl  liable for any direct, indirect, incidental, special, exemplary, or
+dnl  consequential damages (including, but not limited to, procurement of
+dnl  substitute goods or services; loss of use, data, or profits; or
+dnl  business interruption) however caused and on any theory of liability,
+dnl  whether in contract, strict liability, or tort (including negligence
+dnl  or otherwise) arising in any way out of the use of this software, even
+dnl  if advised of the possibility of such damage.
+dnl
+dnl  $Id$
+dnl
+
+AC_INIT([hpctoolkit-externals], [2018.11],
+	[hpctoolkit-forum@rice.edu],
+	[hpctoolkit-externals],
+	[http://hpctoolkit.org/])
+AC_COPYRIGHT([Copyright (c) 2008-2019, Rice University.
+See the file LICENSE for details.])
+
+AC_CONFIG_AUX_DIR([config])
+AC_PREREQ(2.69)
+
+AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile.conf])
+AC_CONFIG_FILES([externs.conf])
+AC_CONFIG_FILES([options.conf])
+
+AC_SUBST([CC])
+AC_SUBST([CFLAGS])
+AC_SUBST([CXX])
+AC_SUBST([CXXFLAGS])
+AC_SUBST([AR])
+
+AC_SUBST([build])
+AC_SUBST([build_cpu])
+AC_SUBST([build_os])
+AC_SUBST([host])
+AC_SUBST([host_cpu])
+AC_SUBST([host_os])
+AC_SUBST([is_cross_compile])
+AC_SUBST([prefix])
+
+AC_PROG_CC
+AC_PROG_CXX
+
+AC_CANONICAL_BUILD
+AC_CANONICAL_HOST
+
+failure_file=BUILD-FAILURE
+externs_file=externs.conf
+nobuild_cookie=.dont-build
+version_file="${srcdir}/.svn-revision"
+
+#------------------------------------------------------------
+# Prefix
+#------------------------------------------------------------
+
+# Allow the user to set the prefix, but change the default to a subdir
+# of the build directory.  Autoconf requires this to be an absolute
+# path.  Normalize the path and mkdir the directory so we can write
+# externs.conf into it.
+
+if test "x$prefix" = xNONE ; then
+    prefix="`pwd`/${host}"
+fi
+if mkdir -p "$prefix" ; then : ; else
+    AC_MSG_ERROR([unable to mkdir $prefix])
+fi
+prefix=`( cd "$prefix" && pwd )`
+
+#------------------------------------------------------------
+# CONFIG_SITE
+#------------------------------------------------------------
+
+# If CONFIG_SITE contains the path to a file, then autoconf sources
+# that file to reset default values for libdir, etc.  This may break
+# our config scripts by producing an install layout that they don't
+# expect.  Unfortunately, autoconf sources the file before running
+# this script, so we can't unset it here.
+
+warn_config_site=no
+if test -f "$CONFIG_SITE" ; then
+    AC_MSG_WARN([CONFIG_SITE is set in the environment])
+    warn_config_site=yes
+fi
+
+#------------------------------------------------------------
+# Git revision
+#------------------------------------------------------------
+
+# If this is a git repo, then try to identify the branch name and the
+# date and hash of the last commit.
+
+AC_MSG_CHECKING([for git version])
+
+git_version='unknown (not a git repo)'
+
+mesg=`cd "$srcdir" && git log -n 1 --date=short 2>/dev/null`
+if echo "$mesg" | grep -i commit >/dev/null ; then
+    git_hash=`echo "$mesg" | grep -i commit | head -1 | awk '{print $2}'`
+    git_hash=`expr "$git_hash" : '\(........\)'`
+    git_date=`echo "$mesg" | grep -i date | head -1 | awk '{print $2}'`
+
+    mesg=`cd "$srcdir" && git status 2>/dev/null | head -1`
+    if echo "$mesg" | grep -i branch >/dev/null ; then
+        git_branch=`echo "$mesg" | sed -e 's/^.*branch//i' | awk '{print $1}'`
+
+    elif echo "$mesg" | grep -i detach >/dev/null ; then
+        # detached commits don't have a branch name
+        git_branch=detached
+
+    else
+        git_branch=unknown
+    fi
+
+    git_version="$git_branch at $git_date ($git_hash)"
+fi
+
+AC_MSG_RESULT([$git_version])
+
+AC_SUBST([git_version])
+
+#------------------------------------------------------------
+# Cross compile
+#------------------------------------------------------------
+
+# is_cross_compile: non-empty string if cross-compiling
+
+is_cross_compile=""
+if test "x$build" != "x$host" ; then
+    is_cross_compile="${host}"
+fi
+
+#------------------------------------------------------------
+# Compiler path and version
+#------------------------------------------------------------
+
+# Find the location and version of the C and C++ compilers.  Warn if
+# not using GNU gcc/g++.  Some packages don't build cleanly without
+# GNU.  For example, binutils fails with icc.
+#
+# It's a pain to robustly identify GNU gcc/g++.  Intel icc defines
+# __GNUC__ and SuSE and Ubuntu 'g++ --version' don't display "GCC".
+#
+# FIXME: the --version option works with GNU and Intel.  We could
+# extend this to PGI, IBM, etc, but we probably don't build cleanly
+# with those compilers.
+
+CC_VERSION='unknown non-gnu'
+version=`$CC --version 2>/dev/null`
+if echo "$version" | grep -i copyright >/dev/null ; then
+    CC_VERSION=`echo "$version" | head -1`
+fi
+
+CC_PATH=
+base=`echo $CC | awk '{ print $1 }'`
+case "$base" in
+    /* ) CC_PATH="$base" ;;
+    * )  AC_PATH_PROG([CC_PATH], [$base]) ;;
+esac
+if test "x$CC_PATH" = x ; then
+    CC_PATH="$base"
+fi
+
+warn_non_gcc=no
+echo $version | grep -E -i -e 'copy.*free.*soft.*found' >/dev/null
+if test $? -ne 0 ; then
+    warn_non_gcc=yes
+    AC_MSG_WARN([Not using the GNU C compiler.])
+fi
+
+CXX_VERSION='unknown non-gnu'
+version=`$CXX --version 2>/dev/null`
+if echo "$version" | grep -i copyright >/dev/null ; then
+    CXX_VERSION=`echo "$version" | head -1`
+fi
+
+CXX_PATH=
+base=`echo $CXX | awk '{ print $1 }'`
+case "$base" in
+    /* ) CXX_PATH="$base" ;;
+    * )  AC_PATH_PROG([CXX_PATH], [$base]) ;;
+esac
+if test "x$CXX_PATH" = x ; then
+    CXX_PATH="$base"
+fi
+
+echo $version | grep -E -i -e 'copy.*free.*soft.*found' >/dev/null
+if test $? -ne 0 ; then
+    warn_non_gcc=yes
+    AC_MSG_WARN([Not using the GNU C++ compiler.])
+fi
+
+AC_MSG_NOTICE([C compiler: $CC_VERSION])
+AC_MSG_NOTICE([C++ compiler: $CXX_VERSION])
+
+AC_SUBST([CC_PATH])
+AC_SUBST([CXX_PATH])
+
+# Warn if using GNU gcc/g++ older than 4.8.  The new symtab pre-10.x
+# has trouble with versions earlier than 4.8.
+
+warn_old_gcc=no
+if test "$warn_non_gcc" = no ; then
+    ans=`$CC -v 2>&1 | grep -i version`
+    version=`echo $ans | sed -e 's/^.*version//i' | awk '{ print $1 }'`
+    major=`echo $version | awk -F. '{ print $1 }'`
+    minor=`echo $version | awk -F. '{ print $2 }'`
+    expr 1 + "$major" >/dev/null 2>&1 && expr 1 + "$minor" >/dev/null 2>&1
+    if test $? -ne 0 ; then
+        AC_MSG_WARN([unable to parse gcc version])
+    elif test "$major" -le 3 ; then
+	warn_old_gcc=yes
+    elif test "$major" -eq 4 && test "$minor" -lt 8 ; then
+	warn_old_gcc=yes
+    fi
+fi
+
+if test "$warn_old_gcc" = yes ; then
+    AC_MSG_WARN([Using an old version of GNU gcc/g++.])
+fi
+
+#------------------------------------------------------------
+# CXXFLAGS for std C++11
+#------------------------------------------------------------
+
+# New symtab 8.2 wants a flag for std C++11.  The native symtab test
+# is broken for back-end MIC (g++ 4.7.0 but doesn't know -std=c++11),
+# so we test here.
+
+AC_ARG_VAR([CXX11_FLAG],
+    [CXX flag for symtabAPI for standard C++11, only needed for
+     non-GNU CXX])
+
+AC_MSG_CHECKING([for CXXFLAGS for std C++11])
+
+c11_list='argvar none -std=c++11 -std=c++0x -std=gnu++0x'
+cxx_c11_avail=no
+cxx_c11_flag=
+
+ORIG_CXXFLAGS="$CXXFLAGS"
+AC_LANG_PUSH([C++])
+
+for opt in $c11_list
+do
+    case "$opt" in
+	argvar ) flag="$CXX11_FLAG" ;;
+	none )   flag=  ;;
+	* )      flag="$opt" ;;
+    esac
+    CXXFLAGS="$ORIG_CXXFLAGS $flag"
+    AC_COMPILE_IFELSE([
+    AC_LANG_SOURCE([[
+#include <list>
+int mylen(std::list <int> lst)
+{
+    int ans = 0;
+    for (auto it = lst.begin(); it != lst.end(); it++) {
+        ans++;
+    }
+    return ans;
+}
+]])], [ans=yes], [ans=no])
+    if test "$ans" = yes ; then
+	cxx_c11_avail=yes
+	cxx_c11_flag="$flag"
+	break
+    fi
+done
+
+AC_LANG_POP
+CXXFLAGS="$ORIG_CXXFLAGS"
+
+AC_MSG_RESULT([$cxx_c11_flag])
+
+if test "$cxx_c11_avail" = no ; then
+    AC_MSG_WARN([unable to find CXXFLAGS for std C++11])
+    AC_MSG_WARN([try setting the CXX11_FLAG variable])
+fi
+
+AC_SUBST([cxx_c11_flag])
+
+#------------------------------------------------------------
+# CFLAGS for -fPIC
+#------------------------------------------------------------
+
+# Try C flags for PIC.  GNU and Intel use -fPIC, PGI uses -fpic.
+# We use this in binutils to build an fPIC version of libiberty for
+# symtabAPI.
+
+AC_MSG_CHECKING([for option for PIC])
+
+cflags_fpic=
+
+ORIG_CFLAGS="$CFLAGS"
+AC_LANG_PUSH([C])
+
+for flag in -fPIC -fpic
+do
+    CFLAGS="$ORIG_CFLAGS $flag"
+    AC_COMPILE_IFELSE([
+    AC_LANG_SOURCE([[
+int foo(int x)
+{
+    return x + 2;
+}
+]])],  [ans=yes], [ans=no])
+
+    if test "$ans" = yes ; then
+	cflags_fpic="$flag"
+	break
+    fi
+done
+
+AC_LANG_POP
+CFLAGS="$ORIG_CFLAGS"
+
+AC_MSG_RESULT([$cflags_fpic])
+
+if test "x$cflags_fpic" = x ; then
+    AC_MSG_WARN([unable to find CFLAGS to support PIC])
+fi
+
+AC_SUBST([cflags_fpic])
+
+#------------------------------------------------------------
+# GNU make
+#------------------------------------------------------------
+
+# Try to find GNU make.  Amazingly, AC doesn't have a macro for this.
+# We only use this value when running configure scripts directly.
+# When starting from a make target, MAKE is exported to the scripts.
+# Thus, it's not fatal if we can't find gnu make here, as long as you
+# later run a gnu-compatible make.
+
+AC_MSG_CHECKING([for gnu make])
+
+if gmake --version 2>&1 | grep -i gnu >/dev/null 2>&1 ; then
+    gnu_make=gmake
+elif make --version 2>&1 | grep -i gnu >/dev/null 2>&1 ; then
+    gnu_make=make
+else
+    gnu_make=no
+fi
+
+AC_MSG_RESULT([$gnu_make])
+
+if test "$gnu_make" = no ; then
+    AC_MSG_WARN([unable to find gnu make])
+    gnu_make=make
+fi
+
+AC_SUBST([gnu_make])
+
+#------------------------------------------------------------
+# CMAKE
+#------------------------------------------------------------
+
+# Dyninst 9.0 now requires cmake 2.8 or later, maybe 2.8.10 or so.
+# Issue a fatal error if can't find cmake and a loud warning if not
+# 2.8 or later.
+
+AC_CHECK_PROG([cmake_found], [cmake], [yes], [no])
+
+if test "$cmake_found" != yes ; then
+    AC_MSG_WARN([Dyninst requires cmake version 2.8.10 or later.])
+    AC_MSG_WARN([Put cmake on your PATH and rerun configure.])
+    AC_MSG_ERROR([Unable to find cmake.])
+fi
+
+cmake_version=`cmake --version 2>&1 | grep -i version`
+AC_MSG_NOTICE([$cmake_version])
+
+version=`echo $cmake_version | sed -e 's/^[[^0-9.]]*//'`
+version=`echo $version | sed -e 's/^\([[0-9.]]*\).*/\1/'`
+major=`echo $version | awk -F. '{ print $1 }'`
+minor=`echo $version | awk -F. '{ print $2 }'`
+
+warn_old_cmake=no
+
+if expr 1 + "$major" + "$minor" >/dev/null 2>&1
+then
+    if test "$major" -lt 2  \
+       || test \( "$major" -eq 2 \) -a \( "$minor" -lt 8 \)
+    then
+        AC_MSG_WARN([this version of cmake is too old])
+	warn_old_cmake=yes
+    fi
+else
+    AC_MSG_WARN([unable to determine cmake version])
+    warn_old_cmake=yes
+fi
+
+#------------------------------------------------------------
+# OBJCOPY for cross-compile
+#------------------------------------------------------------
+
+# Search for an objcopy program that works with output produced by CC
+# or else specify one with OBJCOPY.  This is mostly for the cross-
+# compile case with names like x86_64-k1om-linux-objcopy.  Our
+# libunwind install script uses this to change some symbol names.
+
+AC_CHECK_TOOL([objcopy_prog], [objcopy], [objcopy])
+
+AC_ARG_VAR([OBJCOPY],
+    [objcopy program for binaries produced by CC, only needed
+     if autoconf fails to find a suitable program])
+
+if test -n "$OBJCOPY" ; then
+    AC_MSG_NOTICE([setting objcopy to: $OBJCOPY])
+    objcopy_prog="$OBJCOPY"
+fi
+
+AC_MSG_CHECKING([if $objcopy_prog works])
+
+srcfile="conftest.$$.c"
+objfile="conftest.$$.o"
+newobj="conftest-new.$$.o"
+rm -f "$srcfile" "$objfile" "$newobj"
+cat >"$srcfile" <<EOF
+int foo(void)
+{ return 2; }
+EOF
+
+objcopy_avail=no
+echo $CC $CFLAGS -c "$srcfile" -o "$objfile" >&AS_MESSAGE_LOG_FD
+$CC $CFLAGS -c "$srcfile" -o "$objfile" >&AS_MESSAGE_LOG_FD 2>&1
+if test $? -eq 0 ; then
+    echo $objcopy_prog --redefine-sym foo=baz "$objfile" "$newobj" >&AS_MESSAGE_LOG_FD
+    $objcopy_prog --redefine-sym foo=baz "$objfile" "$newobj" >&AS_MESSAGE_LOG_FD 2>&1
+    if test $? -eq 0 && test -f "$newobj" ; then
+	objcopy_avail=yes
+    fi
+fi
+rm -f "$srcfile" "$objfile" "$newobj"
+
+AC_MSG_RESULT([$objcopy_avail])
+
+if test "$objcopy_avail" != yes ; then
+    AC_MSG_WARN([$objcopy_prog does not work with $CC])
+fi
+
+AC_SUBST([objcopy_prog])
+
+#------------------------------------------------------------
+# Wordsize: --enable-wordsize=NUM
+#------------------------------------------------------------
+
+# Use sizeof(void *) to determine if CC produces 32- or 64-bit code.
+# This option is rarely needed, it exists just in case AC computes the
+# wrong value.
+
+AC_CHECK_SIZEOF([void *])
+
+default=`expr $ac_cv_sizeof_void_p '*' 8`
+
+AC_ARG_ENABLE([wordsize],
+    [AS_HELP_STRING([--enable-wordsize=NUM],
+	[host wordsize in bits, 32 or 64, only needed if autoconf
+	 computes the wrong value])],
+    [wordsize="$enable_wordsize"],
+    [wordsize="$default"])
+
+AC_MSG_CHECKING([host wordsize])
+AC_MSG_RESULT([$wordsize bits])
+
+# The host wordsize also sets the multilib search path.  This only
+# applies to outside packages via --with-pkg (ie, not built here).
+
+case "$wordsize" in
+    64 ) multilib_path='lib64 lib' ;;
+    32 ) multilib_path='lib32 lib' ;;
+    * ) AC_MSG_ERROR([wordsize must be 32 or 64: $wordsize bits]) ;;
+esac
+
+AC_SUBST([wordsize])
+
+# Check that CC and CXX produce the same wordsize.  Also check that
+# CFLAGS doesn't change the wordsize.  This shouldn't be necessary,
+# but some packages can't handle -m64 in CFLAGS, they require
+# something like CC='gcc -m64'.
+
+srcfile="conftest.$$.c"
+objfile="conftest.$$.o"
+
+rm -f "$srcfile"
+cat >"$srcfile" <<EOF
+int foo(void)
+{ return 2; }
+EOF
+
+get_wordsize()
+{
+    output=`file $objfile`
+    case "$output" in
+	*64-bit* ) ans=64 ;;
+	*32-bit* ) ans=32 ;;
+	* ) ans=0 ;;
+    esac
+    echo $ans
+}
+
+AC_MSG_CHECKING([host wordsize from CC])
+rm -f "$objfile"
+$CC -c -o "$objfile" "$srcfile" >/dev/null
+wordsize_cc=`get_wordsize`
+AC_MSG_RESULT([$wordsize_cc bits])
+
+AC_MSG_CHECKING([host wordsize from CXX])
+rm -f "$objfile"
+$CXX -c -o "$objfile" "$srcfile" >/dev/null
+wordsize_cxx=`get_wordsize`
+AC_MSG_RESULT([$wordsize_cxx bits])
+
+rm -f "$objfile"
+$CC $CFLAGS -c -o "$objfile" "$srcfile" >/dev/null
+wordsize_cflags=`get_wordsize`
+
+rm -f "$objfile"
+$CXX $CXXFLAGS -c -o "$objfile" "$srcfile" >/dev/null
+wordsize_cxxflags=`get_wordsize`
+
+rm -f "$srcfile" "$objfile"
+
+if test "$wordsize" != "$wordsize_cc" \
+    || test "$wordsize" != "$wordsize_cxx" \
+    || test "$wordsize" != "$wordsize_cflags" \
+    || test "$wordsize" != "$wordsize_cxxflags"
+then
+    AC_MSG_WARN([CC or CXX generate inconsistent wordsizes.])
+    AC_MSG_WARN([Either CC ($wordsize_cc) and CXX ($wordsize_cxx) generate different wordsizes,])
+    AC_MSG_WARN([or they do not match the host wordsize ($wordsize), or they generate])
+    AC_MSG_WARN([different wordsizes with and without CFLAGS.  If you are])
+    AC_MSG_WARN([using a CFLAGS option to reset the wordsize, then put this])
+    AC_MSG_WARN([option in CC with something like CC='gcc -m${wordsize}'.])
+    AC_MSG_ERROR([CC or CXX generate inconsistent wordsizes.])
+fi
+
+#------------------------------------------------------------
+# Platform-specific options
+#------------------------------------------------------------
+
+# Libmonitor on BGQ needs the back-end compiler.  For now, use this
+# only for libmonitor, only on Blue Gene/Q and only if not already
+# cross compiling.
+
+AC_ARG_ENABLE([bgq],
+    [AS_HELP_STRING([--enable-bgq],
+	[enable BGQ-specific options: build libmonitor with
+	 back-end powerpc64-bgq-linux-gcc (autodetect)])],
+    [],
+    [enable_bgq=check])
+
+# Search for the back-end BGQ compiler on PATH and test for Blue
+# Gene/P (suppress the warning on P).
+
+blue_gene_p=no
+ppc64_bgq_avail=
+if test -d /bgsys ; then
+    AC_CHECK_PROG([ppc64_bgq_avail], [powerpc64-bgq-linux-gcc], [yes], [no])
+    if test "$ppc64_bgq_avail" = no && test "$wordsize" = 32 ; then
+	blue_gene_p=yes
+    fi
+else
+    ppc64_bgq_avail=no
+fi
+
+libmonitor_use_bgq_backend=no
+warn_bgq_backend=no
+
+case "$enable_bgq" in
+    yes )
+	if test "$ppc64_bgq_avail" != yes ; then
+	    AC_MSG_ERROR([unable to find powerpc64-bgq-linux-gcc for enable-bgq])
+	fi
+	libmonitor_use_bgq_backend=yes
+	;;
+    no ) ;;
+    * )
+	if test -d /bgsys && test "$blue_gene_p" = no && test -z "$is_cross_compile"
+	then
+	    if test "$ppc64_bgq_avail" = yes ; then
+		AC_MSG_WARN([using back-end compiler for libmonitor])
+		libmonitor_use_bgq_backend=yes
+	    else
+		AC_MSG_WARN([unable to find powerpc64-bgq-linux-gcc])
+	    fi
+	    warn_bgq_backend=yes
+	fi
+	;;
+esac
+
+AC_SUBST([libmonitor_use_bgq_backend])
+
+#------------------------------------------------------------
+# Copy skeleton directories
+#------------------------------------------------------------
+
+# Support a separate build directory by copying the package skeleton
+# directories.  Just copy regular files and the patches subdir, don't
+# copy other subdirs.
+
+packages='binutils boost libdwarf libelf libmonitor libunwind libxml2
+lzma old-monitor open-analysis oprofile perfmon symtabAPI xed2 xerces zlib'
+
+if test "x$srcdir" != x.
+then
+    AC_MSG_CHECKING([copying package directories])
+    for pkg in $packages build-utils config
+    do
+        if mkdir -p "$pkg" ; then : ; else
+	    AC_MSG_ERROR([unable to mkdir $pkg])
+	fi
+	for file in "${srcdir}/${pkg}"/*
+	do
+	    if test -f "$file" ; then
+		if cp -f "$file" "$pkg" ; then : ; else
+		    AC_MSG_ERROR([unable to copy $file])
+		fi
+	    fi
+	done
+	for dir in "${srcdir}/${pkg}"/patch*
+	do
+	    if test -d "$dir" ; then
+		base=`basename "$dir"`
+		if mkdir -p "${pkg}/${base}" ; then : ; else
+		    AC_MSG_ERROR([unable to mkdir $pkg/$base])
+		fi
+		for file in "$dir"/*
+		do
+		    if test -f "$file" ; then
+			if cp -f "$file" "${pkg}/${base}" ; then : ; else
+			    AC_MSG_ERROR([unable to copy $file])
+			fi
+		    fi
+		done
+	    fi
+	done
+    done
+
+    # Symlink the distfiles directory.
+    if test ! -d distfiles ; then
+	if ln -s "${srcdir}/distfiles" distfiles ; then : ; else
+	    AC_MSG_ERROR([unable to symlink distfiles])
+	fi
+    fi
+
+    AC_MSG_RESULT([done])
+fi
+
+#------------------------------------------------------------
+# Install prefixes
+#------------------------------------------------------------
+
+# Install each package into a separate subdirectory of the global
+# prefix.  This is only for packages that we build here.  Packages
+# given by --with-pkg=PATH are left in place.
+
+binutils_local_prefix="${prefix}/binutils"
+boost_local_prefix="${prefix}/boost"
+libdwarf_local_prefix="${prefix}/libdwarf"
+libelf_local_prefix="${prefix}/libelf"
+libmonitor_local_prefix="${prefix}/libmonitor"
+libunwind_local_prefix="${prefix}/libunwind"
+libxml2_local_prefix="${prefix}/libxml2"
+lzma_local_prefix="${prefix}/lzma"
+old_monitor_local_prefix="${prefix}/old-monitor"
+open_analysis_local_prefix="${prefix}/open-analysis"
+oprofile_local_prefix="${prefix}/oprofile"
+perfmon_local_prefix="${prefix}/perfmon"
+symtabAPI_local_prefix="${prefix}/symtabAPI"
+xed2_local_prefix="${prefix}/xed2"
+xerces_local_prefix="${prefix}/xerces"
+zlib_local_prefix="${prefix}/zlib"
+
+#------------------------------------------------------------
+# Default packages: --enable-back-end
+#------------------------------------------------------------
+
+# Default set of packages to build or not to build.  These are just
+# defaults.  You can always override the choices with --with-pkg or
+# --without-pkg and the specific overrides the general.
+
+AC_ARG_ENABLE([back-end],
+    [AS_HELP_STRING([--enable-back-end],
+        [build only those packages needed to run hpcrun on the
+	 back-end compute nodes (default no)])],
+    [],
+    [enable_back_end=no])
+
+# Oprofile is still experimental, so its default is no (for now).
+
+binutils_default=build
+boost_default=build
+libdwarf_default=build
+libelf_default=build
+libmonitor_default=build
+libunwind_default=build
+libxml2_default=no
+lzma_default=build
+old_monitor_default=no
+open_analysis_default=no
+oprofile_default=no
+perfmon_default=build
+symtabAPI_default=build
+xed2_default=build
+xerces_default=build
+zlib_default=build
+
+if test "$enable_back_end" != no ; then
+    binutils_default=no
+    old_monitor_default=no
+    open_analysis_default=no
+    oprofile_default=no
+    xerces_default=no
+fi
+
+#------------------------------------------------------------
+# Binutils: --with-binutils=PATH
+#------------------------------------------------------------
+
+AC_ARG_WITH([dummy-blank-line], [AS_HELP_STRING([ ], [ ])])
+AC_ARG_WITH([binutils],
+    [AS_HELP_STRING([--with-binutils=PATH],
+	[path to binutils install directory (default build)])],
+    [],
+    [with_binutils="$binutils_default"])
+
+AC_MSG_CHECKING([binutils])
+
+binutils_avail=no
+binutils_prefix=no
+binutils_version=
+cookie="binutils/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_binutils" in
+    build | yes )
+	binutils_avail=build
+	binutils_prefix="$binutils_local_prefix"
+	binutils_version=' (new)'
+	;;
+    /* )
+	if test -f "${with_binutils}/include/bfd.h" ; then
+	    binutils_avail="$with_binutils"
+	    binutils_prefix="$with_binutils"
+	else
+	    AC_MSG_ERROR([invalid binutils directory: $with_binutils])
+	fi
+	echo "installed in: $with_binutils" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([binutils directory must be absolute path: $with_binutils])
+	;;
+esac
+
+AC_MSG_RESULT([$binutils_avail$binutils_version])
+
+AC_SUBST([binutils_prefix])
+
+#------------------------------------------------------------
+# Boost: --with-boost=PATH
+#------------------------------------------------------------
+
+AC_ARG_WITH([boost],
+    [AS_HELP_STRING([--with-boost=PATH],
+	[path to boost install directory (default build)])],
+    [],
+    [with_boost="$boost_default"])
+
+AC_MSG_CHECKING([boost])
+
+boost_avail=no
+boost_prefix=no
+cookie="boost/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_boost" in
+    build | yes )
+	boost_avail=build
+	boost_prefix="$boost_local_prefix"
+	;;
+    /* )
+	if test -f "${with_boost}/include/boost/multi_index_container.hpp" \
+	    && test -f "${with_boost}/include/boost/graph/depth_first_search.hpp"
+	then
+	    boost_avail="$with_boost"
+	    boost_prefix="$with_boost"
+	else
+	    AC_MSG_ERROR([invalid boost directory: $with_boost])
+	fi
+	echo "installed in: $with_boost" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([boost directory must be absolute path: $with_boost])
+	;;
+esac
+
+AC_MSG_RESULT([$boost_avail])
+
+AC_SUBST([boost_prefix])
+
+#------------------------------------------------------------
+# Libdwarf: --with-libdwarf=PATH
+#------------------------------------------------------------
+
+AC_ARG_WITH([libdwarf],
+    [AS_HELP_STRING([--with-libdwarf=PATH],
+	[path to libdwarf install directory (default build)])],
+    [],
+    [with_libdwarf="$libdwarf_default"])
+
+AC_MSG_CHECKING([libdwarf])
+
+libdwarf_avail=no
+libdwarf_prefix=no
+libdwarf_inc=no
+libdwarf_lib=no
+cookie="libdwarf/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_libdwarf" in
+    build | yes )
+	libdwarf_avail=build
+	libdwarf_prefix="$libdwarf_local_prefix"
+	libdwarf_inc="${libdwarf_prefix}/include"
+	libdwarf_lib="${libdwarf_prefix}/lib"
+	;;
+    /* )
+	libdwarf_avail="$with_libdwarf"
+	libdwarf_prefix="$with_libdwarf"
+	if test -f "${libdwarf_prefix}/include/libdwarf.h" ; then
+	    libdwarf_inc="${libdwarf_prefix}/include"
+	else
+	    AC_MSG_ERROR([invalid libdwarf directory: $with_libdwarf])
+	fi
+	for lib in $multilib_path fail ; do
+	    if test -f "${libdwarf_prefix}/${lib}/libdwarf.so" ; then
+		libdwarf_lib="${libdwarf_prefix}/${lib}"
+		break
+	    fi
+	    if test "$lib" = fail ; then
+		AC_MSG_ERROR([invalid libdwarf directory: $with_libdwarf])
+	    fi
+	done
+	echo "installed in: $libdwarf_avail" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([libdwarf directory must be absolute path: $with_libdwarf])
+	;;
+esac
+
+AC_MSG_RESULT([$libdwarf_avail])
+
+AC_SUBST([libdwarf_prefix])
+AC_SUBST([libdwarf_inc])
+AC_SUBST([libdwarf_lib])
+
+#------------------------------------------------------------
+# Libelf: --with-libelf=PATH
+#------------------------------------------------------------
+
+# Test for libelf.h in include and include/libelf, and test for
+# multilib lib directory.
+
+AC_ARG_WITH([libelf],
+    [AS_HELP_STRING([--with-libelf=PATH],
+	[path to libelf install directory (default build)])],
+    [],
+    [with_libelf="$libelf_default"])
+
+AC_MSG_CHECKING([libelf])
+
+libelf_avail=no
+libelf_prefix=no
+libelf_inc=no
+libelf_lib=no
+libelf_build=no
+cookie="libelf/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_libelf" in
+    build | yes )
+	libelf_avail=build
+	libelf_prefix="$libelf_local_prefix"
+	libelf_inc="${libelf_prefix}/include"
+	libelf_lib="${libelf_prefix}/lib"
+	libelf_build=yes
+	;;
+    /* )
+	libelf_avail="$with_libelf"
+	libelf_prefix="$with_libelf"
+	if test ! -f "${libelf_prefix}/include/libelf.h" \
+	    && test ! -f "${libelf_prefix}/include/libelf/libelf.h"
+	then
+	    AC_MSG_ERROR([unable to find libelf.h in: $libelf_prefix])
+	fi
+	libelf_inc="${libelf_prefix}/include"
+	for lib in $multilib_path ; do
+	    if test -f "${libelf_prefix}/${lib}/libelf.so" ; then
+		libelf_lib="${libelf_prefix}/${lib}"
+		break
+	    fi
+	done
+	if test "$libelf_lib" = no ; then
+	    AC_MSG_ERROR([unable to find libelf.so in: $libelf_prefix])
+	fi
+	echo "installed in: $libelf_avail" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([libelf directory must be absolute path: $with_libelf])
+	;;
+esac
+
+AC_MSG_RESULT([$libelf_avail])
+
+AC_SUBST([libelf_prefix])
+AC_SUBST([libelf_inc])
+AC_SUBST([libelf_lib])
+
+#------------------------------------------------------------
+# Libmonitor: --with-libmonitor=PATH
+#------------------------------------------------------------
+
+AC_ARG_WITH([libmonitor],
+    [AS_HELP_STRING([--with-libmonitor=PATH],
+	[path to libmonitor install directory (default build)])],
+    [],
+    [with_libmonitor="$libmonitor_default"])
+
+AC_MSG_CHECKING([libmonitor])
+
+libmonitor_avail=no
+libmonitor_prefix=no
+cookie="libmonitor/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_libmonitor" in
+    build | yes )
+	libmonitor_avail=build
+	libmonitor_prefix="$libmonitor_local_prefix"
+	;;
+    /* )
+	if test -f "${with_libmonitor}/include/monitor.h" ; then
+	    libmonitor_avail="$with_libmonitor"
+	    libmonitor_prefix="$with_libmonitor"
+	else
+	    AC_MSG_ERROR([invalid libmonitor directory: $with_libmonitor])
+	fi
+	echo "installed in: $with_libmonitor" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([libmonitor directory must be absolute path: $with_libmonitor])
+	;;
+esac
+
+AC_MSG_RESULT([$libmonitor_avail])
+
+AC_SUBST([libmonitor_prefix])
+
+#------------------------------------------------------------
+# Libunwind: --with-libunwind=PATH
+#------------------------------------------------------------
+
+# Now used all platforms.
+
+# The 32-bit version of libunwind doesn't build correctly on x86-64
+# due to some cross-compile issues, so disable that choice for now.
+# This is only the default, you can reenable with --with-libunwind.
+
+case "$host_cpu" in
+    *x86*64* )
+	if test "$wordsize" = 32 ; then
+	    libunwind_default=no
+	fi
+	;;
+esac
+
+AC_ARG_WITH([libunwind],
+    [AS_HELP_STRING([--with-libunwind=PATH],
+	[path to libunwind install directory (default build)])],
+    [],
+    [with_libunwind="$libunwind_default"])
+
+AC_MSG_CHECKING([libunwind])
+
+libunwind_avail=no
+libunwind_prefix=no
+libunwind_inc=no
+libunwind_lib=no
+cookie="libunwind/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_libunwind" in
+    build | yes )
+	libunwind_avail=build
+	libunwind_prefix="$libunwind_local_prefix"
+	libunwind_inc="${libunwind_prefix}/include"
+	libunwind_lib="${libunwind_prefix}/lib"
+	;;
+    /* )
+	libunwind_avail="$with_libunwind"
+	libunwind_prefix="$with_libunwind"
+	if test -f "${libunwind_prefix}/include/libunwind.h" ; then
+	    libunwind_inc="${libunwind_prefix}/include"
+	else
+	    AC_MSG_ERROR([invalid libunwind: $libunwind_prefix])
+	fi
+	for lib in $multilib_path fail ; do
+	    if test -f "${libunwind_prefix}/${lib}/libunwind.so" ; then
+		libunwind_lib="${libunwind_prefix}/${lib}"
+		break
+	    fi
+	    if test "$lib" = fail ; then
+		AC_MSG_ERROR([invalid libunwind directory: $with_libunwind])
+	    fi
+	done
+	echo "installed in: $libunwind_avail" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([libunwind directory must be absolute path: $with_libunwind])
+	;;
+esac
+
+AC_MSG_RESULT([$libunwind_avail])
+
+# We currently don't use objcopy for libunwind, so don't fail if not
+# available.
+
+if false ; then
+if test "$libunwind_avail" = build && test "$objcopy_avail" != yes
+then
+    AC_MSG_ERROR([unable to find objcopy program for $CC
+set OBJCOPY to a program that works for binaries produced by $CC
+or else reconfigure without libunwind.])
+fi
+fi
+
+AC_SUBST([libunwind_prefix])
+AC_SUBST([libunwind_inc])
+AC_SUBST([libunwind_lib])
+
+#------------------------------------------------------------
+# Libxml2: --with-libxml2=PATH
+#------------------------------------------------------------
+
+libxml2_default=no
+
+AC_ARG_WITH([libxml2],
+    [AS_HELP_STRING([--with-libxml2=PATH],
+	[path to libxml2 install directory (default no)])],
+    [],
+    [with_libxml2="$libxml2_default"])
+
+AC_MSG_CHECKING([libxml2])
+
+libxml2_avail=no
+libxml2_prefix=no
+libxml2_inc=no
+libxml2_lib=no
+cookie="libxml2/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_libxml2" in
+    build | yes )
+	libxml2_avail=build
+	libxml2_prefix="$libxml2_local_prefix"
+	libxml2_inc="${libxml2_prefix}/include/libxml2"
+	libxml2_lib="${libxml2_prefix}/lib"
+	;;
+    /* )
+	libxml2_avail="$with_libxml2"
+	libxml2_prefix="$with_libxml2"
+	if test -d "${with_libxml2}/include/libxml2" ; then
+	    libxml2_inc="${libxml2_prefix}/include/libxml2"
+	else
+	    AC_MSG_ERROR([invalid libxml2 directory: $with_libxml2])
+	fi
+	for lib in $multilib_path fail ; do
+	    if test -f "${libxml2_prefix}/${lib}/libxml2.so" ; then
+		libxml2_lib="${libxml2_prefix}/${lib}"
+		break
+	    fi
+	    if test "$lib" = fail ; then
+		AC_MSG_ERROR([invalid libxml2 directory: $with_libxml2])
+	    fi
+	done
+	echo "installed in: $libxml2_avail" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([libxml2 directory must be absolute path: $with_libxml2])
+	;;
+esac
+
+AC_MSG_RESULT([$libxml2_avail])
+
+AC_SUBST([libxml2_prefix])
+AC_SUBST([libxml2_inc])
+AC_SUBST([libxml2_lib])
+
+#------------------------------------------------------------
+# LZMA: --with-lzma=PATH
+#------------------------------------------------------------
+
+AC_ARG_WITH([lzma],
+    [AS_HELP_STRING([--with-lzma=PATH],
+	[path to lzma (xz) install directory (default build)])],
+    [],
+    [with_lzma="$lzma_default"])
+
+AC_MSG_CHECKING([lzma])
+
+lzma_avail=no
+lzma_prefix=no
+lzma_inc=no
+lzma_lib=no
+cookie="lzma/${nobuild_cookie}"
+rm -f "$cookie"
+
+warn_no_static=no
+
+case "$with_lzma" in
+     build | yes )
+	lzma_avail=build
+	lzma_prefix="$lzma_local_prefix"
+	lzma_inc="${lzma_prefix}/include"
+	lzma_lib="${lzma_prefix}/lib"
+	;;
+    /* )
+	lzma_avail="$with_lzma"
+	lzma_prefix="$with_lzma"
+	if test ! -f "${with_lzma}/include/lzma.h" ; then
+	    AC_MSG_ERROR([unable to find lzma.h in: $with_lzma])
+	fi
+	lzma_inc="${with_lzma}/include"
+	for lib in $multilib_path ; do
+	    if test -f "${with_lzma}/${lib}/liblzma.so" ; then
+		lzma_lib="${with_lzma}/$lib"
+		break
+	    fi
+	done
+	if test "$lzma_lib" = no ; then
+	    AC_MSG_ERROR([unable to find liblzma.so in: $with_lzma])
+	fi
+	if test ! -f "${lzma_lib}/liblzma.a" ; then
+	    warn_no_static=yes
+	fi
+	echo "installed in: $with_lzma" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([lzma directory must be absolute path: $with_lzma])
+	;;
+esac
+
+AC_MSG_RESULT([$lzma_avail])
+
+if test "$warn_no_static" = yes ; then
+    AC_MSG_WARN([unable to find static liblzma.a in: $with_lzma])
+    AC_MSG_WARN([hpclink may not work correctly])
+fi
+
+AC_SUBST([lzma_prefix])
+AC_SUBST([lzma_inc])
+AC_SUBST([lzma_lib])
+
+#------------------------------------------------------------
+# Old Monitor: --with-old-monitor=PATH
+#------------------------------------------------------------
+
+# Turn off old-monitor (and thus hpcrun-flat) by default.
+
+old_monitor_default=no
+
+AC_ARG_WITH([old-monitor],
+    [AS_HELP_STRING([--with-old-monitor=PATH],
+	[path to old monitor install directory (default no)])],
+    [],
+    [with_old_monitor="$old_monitor_default"])
+
+AC_MSG_CHECKING([old-monitor])
+
+old_monitor_avail=no
+old_monitor_prefix=no
+cookie="old-monitor/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_old_monitor" in
+    build | yes )
+	old_monitor_avail=build
+	old_monitor_prefix="$old_monitor_local_prefix"
+	;;
+    /* )
+	if test -f "${with_old_monitor}/include/monitor.h" ; then
+	    old_monitor_avail="$with_old_monitor"
+	    old_monitor_prefix="$with_old_monitor"
+	else
+	    AC_MSG_ERROR([invalid old-monitor directory: $with_old_monitor])
+	fi
+	echo "installed in: $with_old_monitor" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([old-monitor directory must be absolute path: $with_old_monitor])
+	;;
+esac
+
+AC_MSG_RESULT([$old_monitor_avail])
+
+AC_SUBST([old_monitor_prefix])
+
+#------------------------------------------------------------
+# Open Analysis: --with-open-analysis=PATH
+#------------------------------------------------------------
+
+open_analysis_default=no
+
+AC_ARG_WITH([open-analysis],
+    [AS_HELP_STRING([--with-open-analysis=PATH],
+	[path to open analysis install directory (default no)])],
+    [],
+    [with_open_analysis="$open_analysis_default"])
+
+AC_MSG_CHECKING([open-analysis])
+
+open_analysis_avail=no
+open_analysis_prefix=no
+cookie="open-analysis/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_open_analysis" in
+    build | yes )
+	open_analysis_avail=build
+	open_analysis_prefix="$open_analysis_local_prefix"
+	;;
+    /* )
+	if test -d "${with_open_analysis}/include/OpenAnalysis" ; then
+	    open_analysis_avail="$with_open_analysis"
+	    open_analysis_prefix="$with_open_analysis"
+	else
+	    AC_MSG_ERROR([invalid open-analysis directory: $with_open_analysis])
+	fi
+	echo "installed in: $with_open_analysis" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([open-analysis directory must be absolute path: $with_open_analysis])
+	;;
+esac
+
+AC_MSG_RESULT([$open_analysis_avail])
+
+AC_SUBST([open_analysis_prefix])
+
+#------------------------------------------------------------
+# Oprofile: --with-oprofile=PATH
+#------------------------------------------------------------
+
+AC_ARG_WITH([oprofile],
+    [AS_HELP_STRING([--with-oprofile=PATH],
+	[path to oprofile install directory (default no)])],
+    [],
+    [with_oprofile="$oprofile_default"])
+
+AC_MSG_CHECKING([oprofile])
+
+oprofile_avail=no
+oprofile_prefix=no
+cookie="oprofile/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_oprofile" in
+    build | yes )
+	oprofile_avail=build
+	oprofile_prefix="$oprofile_local_prefix"
+	;;
+    /* )
+	if test ! -x "${with_oprofile}/bin/opjitconv" ; then
+	    AC_MSG_ERROR([invalid oprofile directory: $with_oprofile])
+	fi
+	if test ! -f "${with_oprofile}/lib/libopagent.so" \
+	    && test ! -f "${with_oprofile}/lib/oprofile/libopagent.so"
+	then
+	    AC_MSG_ERROR([invalid oprofile directory: $with_oprofile])
+	fi
+	oprofile_avail="$with_oprofile"
+	oprofile_prefix="$with_oprofile"
+	echo "installed in: $with_oprofile" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([oprofile directory must be absolute path: $with_oprofile])
+	;;
+esac
+
+AC_MSG_RESULT([$oprofile_avail])
+
+AC_SUBST([oprofile_prefix])
+
+#------------------------------------------------------------
+# Perfmon (libpfm): --with-perfmon=PATH
+#------------------------------------------------------------
+
+AC_ARG_WITH([perfmon],
+    [AS_HELP_STRING([--with-perfmon=PATH],
+	[path to perfmon (libpfm) install directory (default no)])],
+    [],
+    [with_perfmon="$perfmon_default"])
+
+perfmon_avail=no
+perfmon_prefix=no
+cookie="perfmon/${nobuild_cookie}"
+rm -f "$cookie"
+
+AC_MSG_CHECKING([perfmon])
+
+case "$with_perfmon" in
+    build | yes )
+	perfmon_avail=build
+	perfmon_prefix="$perfmon_local_prefix"
+	;;
+    /* )
+	perfmon_avail="$with_perfmon"
+	perfmon_prefix="$with_perfmon"
+	if test ! -f "${with_perfmon}/include/perfmon/pfmlib.h" ; then
+	    AC_MSG_ERROR([unable to find pfmlib.h in: $with_perfmon])
+	fi
+	echo "installed in: $with_perfmon" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([perfmon directory must be absolute path: $with_perfmon])
+	;;
+esac
+
+AC_MSG_RESULT([$perfmon_avail])
+
+AC_SUBST([perfmon_prefix])
+
+#------------------------------------------------------------
+# SymtabAPI: --with-symtabAPI=PATH
+#------------------------------------------------------------
+
+AC_ARG_WITH([symtabAPI],
+    [AS_HELP_STRING([--with-symtabAPI=PATH],
+	[path to symtabAPI install directory (default build)])],
+    [],
+    [with_symtabAPI="$symtabAPI_default"])
+
+AC_MSG_CHECKING([symtabAPI])
+
+symtabAPI_avail=no
+symtabAPI_prefix=no
+symtabAPI_platform=no
+cookie="symtabAPI/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_symtabAPI" in
+    build | yes )
+	#
+	# SymtabAPI understands a fixed set of platforms, and we only
+	# handle a subset of those.  This is also why you should not
+	# invent non-standard platform names (yuck).
+	#
+	# On x86 and powerpc, choose the platform based on the object
+	# file's wordsize, not the host wordsize.  This allows
+	# building a 32-bit version on a 64-bit host.
+	#
+	case "$host_cpu" in
+	    *aarch64* )
+		symtabAPI_platform=aarch64-unknown-linux
+		;;
+	    *i*86* | *x86* )
+		case "$wordsize" in
+		    64 ) symtabAPI_platform=x86_64-unknown-linux2.4 ;;
+		    32 ) symtabAPI_platform=i386-unknown-linux2.4 ;;
+		esac
+		;;
+	    *power* | *ppc* )
+		case "$wordsize" in
+		    64 ) symtabAPI_platform=ppc64_linux ;;
+		    32 ) symtabAPI_platform=ppc32_linux ;;
+		esac
+		;;
+	    * )
+		AC_MSG_WARN([unknown platform for symtabAPI: $host_cpu])
+		;;
+	esac
+	if test "$symtabAPI_platform" != no ; then
+	    symtabAPI_avail=build
+	    symtabAPI_prefix="$symtabAPI_local_prefix"
+	else
+	    echo "not available on this platform" > "$cookie"
+	fi
+	;;
+    /* )
+	if test -f "${with_symtabAPI}/include/Symtab.h" ; then
+	    symtabAPI_avail="$with_symtabAPI"
+	    symtabAPI_prefix="$with_symtabAPI"
+	else
+	    AC_MSG_ERROR([invalid symtabAPI directory: $with_symtabAPI])
+	fi
+	echo "installed in: $symtabAPI_avail" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([symtabAPI directory must be absolute path: $with_symtabAPI])
+	;;
+esac
+
+AC_MSG_RESULT([$symtabAPI_avail])
+
+# SymtabAPI requires standard C++11.
+
+if test "x$symtabAPI_avail" = xbuild && test "$cxx_c11_avail" = no ; then
+    AC_MSG_WARN([SymtabAPI requires a C++11 compiler.])
+    AC_MSG_WARN([Please set CXX11_FLAG to a CXX flag for std C++11.])
+    AC_MSG_ERROR([Unable to find CXX flag for std C++11.])
+fi
+
+# SymtabAPI doesn't like options in CC and CXX, eg: CC='gcc -m32'.
+# So, move any flags in CC and CXX to another variable.
+
+set -- $CC ; shift
+symtab_cflags="$* $CFLAGS"
+
+set -- $CXX ; shift
+symtab_cxxflags="$* $CXXFLAGS"
+
+AC_SUBST([symtabAPI_prefix])
+AC_SUBST([symtabAPI_platform])
+AC_SUBST([symtab_cflags])
+AC_SUBST([symtab_cxxflags])
+
+# Option to specify an alternate dyninst source tree.
+#  --with-dyninst-src=/path/to/dyninst/source/tree
+# No longer used.
+
+# AC_ARG_WITH([dyninst-src],
+#     [AS_HELP_STRING([--with-dyninst-src=PATH],
+# 	[path to alternate dyninst source tree (default no)])],
+#     [],
+#     [with_dyninst_src=no])
+
+if false ; then
+
+case "$with_dyninst_src" in
+    /* )
+        if test ! -f "${with_dyninst_src}/CMakeLists.txt" \
+	    || test ! -d "${with_dyninst_src}/parseAPI"
+	then
+	    AC_MSG_ERROR([invalid dyninst source tree: $with_dyninst_src])
+	fi
+	;;
+    no )
+	;;
+    * )
+	AC_MSG_ERROR([dyninst source tree must be absolute path: $with_dyninst_src])
+	;;
+esac
+
+symtab_mesg=
+
+if test "$symtabAPI_avail" = build ; then
+    symtab_mesg="(9.3.2)"
+
+    if test -f "symtabAPI/patches/jump-table-slices" ; then
+	symtab_mesg="(9.3.2 + jump tables patch)"
+    fi
+fi
+
+if test "$with_dyninst_src" != no ; then
+    AC_MSG_NOTICE([alternate dyninst source tree: $with_dyninst_src])
+    symtab_mesg="($with_dyninst_src)"
+fi
+
+fi
+
+# AC_SUBST([with_dyninst_src])
+
+#------------------------------------------------------------
+# XED: --with-xed2=PATH, --enable-mic
+#------------------------------------------------------------
+
+# Set xed2_type: x86-64, x86-32, k1om (or else no)
+
+case "$host" in
+    *x86* | *i*86* | *k1om* ) ;;
+    * ) xed2_default=no ;;
+esac
+
+AC_ARG_ENABLE([mic],
+    [AS_HELP_STRING([--enable-mic],
+	[use xed2 on front-end x86_64 that understands Intel MIC (KNC) code,
+	 now a no-op])].
+    [], [])
+
+AC_ARG_WITH([xed2],
+    [AS_HELP_STRING([--with-xed2=PATH],
+	[path to xed2 install directory (default build)])],
+    [],
+    [with_xed2="$xed2_default"])
+
+AC_MSG_CHECKING([xed2])
+
+xed2_avail=no
+xed2_prefix=no
+xed2_type=no
+cookie="xed2/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_xed2" in
+    build | yes )
+	xed2_avail=build
+	xed2_prefix="$xed2_local_prefix"
+	case "$host" in
+	    *k1om* ) xed2_type=k1om
+		;;
+	    *x86* | *i*86* )
+		if test "$wordsize" = 64
+		then xed2_type=x86-64
+		else xed2_type=x86-32
+		fi
+		;;
+	    * )
+		AC_MSG_ERROR([unknown x86 host for xed2: $host_cpu])
+		;;
+	esac
+	;;
+    /* )
+	if test -f "${with_xed2}/include/xed-interface.h" ; then
+	    xed2_avail="$with_xed2"
+	    xed2_prefix="$with_xed2"
+	else
+	    AC_MSG_ERROR([invalid xed2 directory: $with_xed2])
+	fi
+	echo "installed in: $with_xed2" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([xed2 directory must be absolute path: $with_xed2])
+	;;
+esac
+
+AC_MSG_RESULT([$xed2_avail])
+
+AC_SUBST([xed2_prefix])
+AC_SUBST([xed2_type])
+
+#------------------------------------------------------------
+# Xerces: --with-xerces=PATH
+#------------------------------------------------------------
+
+AC_ARG_WITH([xerces],
+    [AS_HELP_STRING([--with-xerces=PATH],
+	[path to xerces/c install directory (default build)])],
+    [],
+    [with_xerces="$xerces_default"])
+
+AC_MSG_CHECKING([xerces])
+
+xerces_avail=no
+xerces_prefix=no
+cookie="xerces/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_xerces" in
+    build | yes )
+	xerces_avail=build
+	xerces_prefix="$xerces_local_prefix"
+	;;
+    /* )
+	if test -f "${with_xerces}/include/xercesc/dom/DOM.hpp" ; then
+	    xerces_avail="$with_xerces"
+	    xerces_prefix="$with_xerces"
+	else
+	    AC_MSG_ERROR([invalid xerces directory: $with_xerces])
+	fi
+	echo "installed in: $with_xerces" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([xerces directory must be absolute path: $with_xerces])
+	;;
+esac
+
+AC_MSG_RESULT([$xerces_avail])
+
+xerces_platform=linux
+
+AC_SUBST([xerces_prefix])
+AC_SUBST([xerces_platform])
+
+#------------------------------------------------------------
+# Zlib: --with-zlib=PATH
+#------------------------------------------------------------
+
+AC_ARG_WITH([zlib],
+    [AS_HELP_STRING([--with-zlib=PATH],
+	[path to zlib install directory (default build)])],
+    [],
+    [with_zlib="$zlib_default"])
+
+AC_MSG_CHECKING([zlib])
+
+zlib_avail=no
+zlib_prefix=no
+zlib_inc=no
+zlib_lib=no
+cookie="zlib/${nobuild_cookie}"
+rm -f "$cookie"
+
+case "$with_zlib" in
+    build | yes )
+	zlib_avail=build
+	zlib_prefix="$zlib_local_prefix"
+	zlib_inc="${zlib_prefix}/include"
+	zlib_lib="${zlib_prefix}/lib"
+	;;
+    /* )
+	zlib_avail="$with_zlib"
+	zlib_prefix="$with_zlib"
+	if test ! -f "${with_zlib}/include/zlib.h" ; then
+	    AC_MSG_ERROR([unable to find zlib.h in: $with_zlib])
+	fi
+	zlib_inc="${with_zlib}/include"
+	for lib in $multilib_path ; do
+	    if test -f "${with_zlib}/${lib}/libz.so" ; then
+	        zlib_lib="${with_zlib}/${lib}"
+		break
+	    fi
+	done
+	if test "$zlib_lib" = no ; then
+	    AC_MSG_ERROR([unable to find zlib.so in: $with_zlib])
+	fi
+	echo "installed in: $with_zlib" > "$cookie"
+	;;
+    no )
+	echo "not available" > "$cookie"
+	;;
+    * )
+	AC_MSG_ERROR([zlib directory must be absolute path: $with_zlib])
+	;;
+esac
+
+AC_MSG_RESULT([$zlib_avail])
+
+# building elfutils requires zlib
+if test "$libelf_build" = yes && test "$zlib_avail" = no ; then
+    AC_MSG_ERROR([building libelf requires zlib])
+fi
+
+AC_SUBST([zlib_prefix])
+AC_SUBST([zlib_inc])
+AC_SUBST([zlib_lib])
+
+#------------------------------------------------------------
+# MPI: --with-mpi=PATH
+#------------------------------------------------------------
+
+# Pass the MPI path to old monitor.
+
+AC_ARG_WITH([mpi],
+    [AS_HELP_STRING([--with-mpi=PATH],
+	[pass the MPI path to old monitor,
+	 not used by libmonitor (default no)])],
+    [],
+    [with_mpi=no])
+
+case "$with_mpi" in
+    /* )
+	if test ! -f "${with_mpi}/include/mpi.h" ; then
+	    AC_MSG_ERROR([invalid mpi directory: $with_mpi])
+	fi
+	;;
+    no )
+	;;
+    * )
+	AC_MSG_ERROR([mpi directory must be absolute path: $with_mpi])
+	;;
+esac
+
+AC_SUBST([with_mpi])
+
+#------------------------------------------------------------
+# Summary
+#------------------------------------------------------------
+
+AC_OUTPUT
+
+# Copy externs.conf into prefix dir, this must come after AC_OUTPUT.
+if cp -f "$externs_file" "$prefix" ; then : ; else
+    AC_MSG_ERROR([unable to copy $externs_file])
+fi
+
+rm -f "$failure_file"
+
+backend_mesg=
+if test "$libmonitor_use_bgq_backend" = yes ; then
+    backend_mesg='(back end)'
+fi
+
+xed2_mesg=
+if test "x$xed2_avail" = xbuild ; then
+    xed2_mesg="($xed2_type)"
+fi
+
+AC_MSG_NOTICE([------------------])
+AC_MSG_NOTICE([Externals summary])
+AC_MSG_NOTICE([------------------])
+
+AC_MSG_NOTICE([version: $PACKAGE_VERSION])
+AC_MSG_NOTICE([git rev: $git_version])
+AC_MSG_NOTICE([prefix: $prefix])
+AC_MSG_NOTICE([build: $build])
+AC_MSG_NOTICE([host:  $host])
+
+AC_MSG_NOTICE([C compiler: $CC_VERSION])
+AC_MSG_NOTICE([Path: $CC_PATH])
+AC_MSG_NOTICE([CC:     '$CC'])
+AC_MSG_NOTICE([CFLAGS: '$CFLAGS'])
+
+AC_MSG_NOTICE([C++ compiler: $CXX_VERSION])
+AC_MSG_NOTICE([Path: $CXX_PATH])
+AC_MSG_NOTICE([CXX:      '$CXX'])
+AC_MSG_NOTICE([CXXFLAGS: '$CXXFLAGS'])
+
+AC_MSG_NOTICE([AR:  '$AR'])
+AC_MSG_NOTICE([wordsize: $wordsize bits])
+
+AC_MSG_NOTICE([binutils: $binutils_avail$binutils_version])
+AC_MSG_NOTICE([boost: $boost_avail])
+AC_MSG_NOTICE([libdwarf: $libdwarf_avail])
+AC_MSG_NOTICE([libelf: $libelf_avail])
+AC_MSG_NOTICE([libmonitor: $libmonitor_avail $backend_mesg])
+AC_MSG_NOTICE([libunwind: $libunwind_avail])
+AC_MSG_NOTICE([libxml2: $libxml2_avail])
+AC_MSG_NOTICE([lzma: $lzma_avail])
+AC_MSG_NOTICE([old-monitor: $old_monitor_avail])
+AC_MSG_NOTICE([open-analysis: $open_analysis_avail])
+AC_MSG_NOTICE([oprofile: $oprofile_avail])
+AC_MSG_NOTICE([perfmon: $perfmon_avail])
+AC_MSG_NOTICE([symtabAPI: $symtabAPI_avail])
+AC_MSG_NOTICE([xed2: $xed2_avail $xed2_mesg])
+AC_MSG_NOTICE([xerces: $xerces_avail])
+AC_MSG_NOTICE([zlib: $zlib_avail])
+
+if test "$warn_config_site" = yes ; then
+    AC_MSG_NOTICE([])
+    AC_MSG_WARN([You have CONFIG_SITE set in your environment.])
+    AC_MSG_WARN([This may break some of hpctoolkit's install paths and])
+    AC_MSG_WARN([launch scripts.  Set CONFIG_SITE=NONE or else unset it])
+    AC_MSG_WARN([from your environment and rerun configure.])
+fi
+
+if test "$warn_old_cmake" = yes ; then
+    AC_MSG_NOTICE([])
+    AC_MSG_WARN([$cmake_version])
+    AC_MSG_WARN([This version of cmake is too old and symtabAPI will])
+    AC_MSG_WARN([likely fail.  Put cmake version 2.8.10 or later on])
+    AC_MSG_WARN([your PATH and rerun configure.])
+fi
+
+if test "$warn_non_gcc" = yes ; then
+    AC_MSG_NOTICE([])
+    AC_MSG_WARN([Not using the GNU C or C++ compiler.])
+    AC_MSG_WARN([This is not necessarily an error, but some packages may not])
+    AC_MSG_WARN([compile cleanly without gcc or g++.  If the build fails, try])
+    AC_MSG_WARN([using GNU gcc and g++ before reporting an error.])
+fi
+
+if test "$warn_old_gcc" = yes ; then
+    AC_MSG_NOTICE([])
+    AC_MSG_WARN([Using an old version of GNU gcc/g++.])
+    AC_MSG_WARN([Some packages may not build correctly with this version.])
+    AC_MSG_WARN([Please reconfigure with GNU gcc/g++ version 4.8 or later.])
+fi
+
+if test "$warn_bgq_backend" = yes ; then
+    AC_MSG_NOTICE([])
+    AC_MSG_WARN([On the Blue Gene/Q compute nodes, libmonitor needs a separate,])
+    AC_MSG_WARN([back-end compiler.  Use --enable-bgq to build for the back end,])
+    AC_MSG_WARN([or else --disable-bgq to build for the front end.])
+fi

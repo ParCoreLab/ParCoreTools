@@ -1,0 +1,78 @@
+======================
+SymtabAPI Build Notes
+======================
+
+Home: http://www.paradyn.org/
+      http://www.dyninst.org/
+
+Download: http://www.dyninst.org/downloads
+
+GitHub: https://github.com/dyninst/
+Git:    http://git.dyninst.org/
+
+git clone https://github.com/dyninst/dyninst
+
+License: LGPL
+
+Prereqs: boost libelf libdwarf binutils (for libiberty)
+
+Dyninst now builds with cmake, use version 2.8.10 or later.  Supports
+vpath and parallel make.
+
+export PLATFORM=platform
+cmake ../dyninst  \
+    -DCMAKE_INSTALL_PREFIX=/path/to/prefix  \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DCROSS_COMPILING=1  \
+    -DCMAKE_C_COMPILER=CC  \
+    -DCMAKE_CXX_COMPILER=CXX  \
+
+    -DPATH_BOOST=/path/to/boost/prefix  \
+    -DIBERTY_LIBRARIES=/path/to/libiberty.a  \
+    -DLIBELF_INCLUDE_DIR=/path/to/libelf/include  \
+    -DLIBELF_LIBRARIES=/path/to/libelf.so  \
+    -DLIBDWARF_INCLUDE_DIR=/path/to/libdwarf/include  \
+    -DLIBDWARF_LIBRARIES=/path/to/libdwarf.so
+
+for subdirs in common elf dwarf symtabAPI instructionAPI parseAPI
+do
+    make -j 4
+    make install
+done
+
+Notes:
+
+(1) Dyninst requires GNU gcc/g++ version 4.8 or later.  So, build
+externals and toolkit with the same gcc/g++ 4.8 or later.
+
+(2) Dyninst uses C++11 features (auto), but we let dyninst choose the
+-std=c++0x flag itself.
+
+(3) Specify CC and CXX with absolute path.  If these are only 'gcc',
+then cmake takes /usr/bin/gcc over gcc earlier in PATH. (wtf!?)
+
+(4) IBERTY_LIBRARIES, LIBELF_LIBRARIES and LIBDWARF_LIBRARIES are the
+actual libraries (.a and .so files), not the lib directory containing
+them.
+
+(5) Dyninst doesn't allow options on CC or CXX compilers.  So, instead
+of 'g++ -m32', we need to move -m32 to FLAGS. (yuck)
+
+(6) Dyninst overrides CMAKE_C/CXX_FLAGS, so we write these into
+optimization.cmake instead.
+
+(7) The tar file is the full dyninst, but we only build common, elf,
+dwarf, symtabAPI and now instructionAPI and parseAPI.
+
+(8) Dyninst is not fully set up for a true cross compile.  We use
+CROSS_COMPILING=1 to disable runtime config tests (harmless for non
+cross compiles), but we skip the full CMAKE_FIND_ROOT_PATH, etc.
+
+(9) Boost misreads the C++11 features in the g++ k1om compiler
+(version 4.7.0 but missing some 4.7 features).  As a workaround, add
+-DBOOST_NO_CXX11_ALLOCATOR and -DBOOST_NO_CXX11_VARIADIC_TEMPLATES for
+back-end Xeon Phi and k1om compiler.
+
+(10) The dyninst-lite-2018-10-20.tar.bz2 tar file is from commit
+1d7826ae on 2018-10-17 minus the doc and .git subdirs.
+

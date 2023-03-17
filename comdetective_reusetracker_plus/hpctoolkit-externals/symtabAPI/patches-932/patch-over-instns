@@ -1,0 +1,53 @@
+Revised patch to fix a bug related to overlapping instructions.
+This includes two patches from dyninst master.
+
+commit 3cfbf940aa9679d8b48feeffcb6e24358ebbda1c
+Author: Xiaozhu Meng <xmeng@cs.wisc.edu>
+Date:   Thu Mar 29 15:55:56 2018 -0500
+
+    When checking whether an address is consistent with instructionsin a
+    block, first check whether the address is within the block
+
+commit 0c31798ed8390ddb1861f95123d2844e58fa6410
+Author: Xiaozhu Meng <xmeng@cs.wisc.edu>
+Date:   Thu Mar 22 12:14:15 2018 -0500
+
+    When dealing with overlapping instructions, we should align block as
+    soon as possible, correctly split blocks, anc create new fall-through
+    edges
+
+
+diff -Naurb dyninst.orig/parseAPI/src/Block.C dyninst/parseAPI/src/Block.C
+--- dyninst.orig/parseAPI/src/Block.C	2017-05-11 16:11:28.000000000 -0500
++++ dyninst/parseAPI/src/Block.C	2018-04-06 16:31:59.330124346 -0500
+@@ -68,6 +68,7 @@
+ bool
+ Block::consistent(Address addr, Address & prev_insn) 
+ {
++    if (addr >= end() || addr < start()) return false;
+     InstructionSource * isrc;
+     if(!_obj->cs()->regionsOverlap())
+         isrc = _obj->cs();
+diff -Naurb dyninst.orig/parseAPI/src/Parser.C dyninst/parseAPI/src/Parser.C
+--- dyninst.orig/parseAPI/src/Parser.C	2018-04-06 16:17:12.074468456 -0500
++++ dyninst/parseAPI/src/Parser.C	2018-04-06 16:27:56.820213813 -0500
+@@ -1265,6 +1265,19 @@
+                                "%lx is within [%lx,%lx)\n",
+                     FILE__,__LINE__,curAddr,
+                     nextBlock->start(),nextBlock->end());
++                Address prev_insn; 
++                if (nextBlock->consistent(curAddr, prev_insn)) {
++                    // The two overlapping blocks aligned.
++                    // We need to split the large block, and create new edge to the later block
++                    Block* new_block = split_block(frame.func, nextBlock, curAddr, prev_insn);
++                    ah.retreat();
++                    end_block(cur, ah);
++                    add_edge(frame, frame.func, cur, curAddr, FALLTHROUGH, NULL);
++                    leadersToBlock[curAddr] = new_block;
++
++                    // We break from this loop because no need more stright-line parsing
++                    break;
++                }
+ 
+                 // NB "cur" hasn't ended, so its range may
+                 // not look like it overlaps with nextBlock

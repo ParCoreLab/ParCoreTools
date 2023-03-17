@@ -1,0 +1,18 @@
+=======================
+Libmonitor Build Notes
+=======================
+
+Home: https://github.com/hpctoolkit
+
+Git: git clone https://github.com/hpctoolkit/libmonitor.git
+
+License: BSD
+
+Uses Autoconf and Automake, supports vpath and parallel make.
+
+./configure --prefix=PATH
+make -j 4
+make install
+
+A Rice HPCToolkit project, one of ours.
+

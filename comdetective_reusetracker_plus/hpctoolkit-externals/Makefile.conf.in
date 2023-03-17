@@ -1,0 +1,21 @@
+#
+#  This file passes configure variables to Makefiles.
+#  It is rewritten on configure.
+#
+MAKEFILE_CONF = yes
+
+PREFIX = @prefix@
+
+CC = @CC@
+CFLAGS = @CFLAGS@
+CXX = @CXX@
+CXXFLAGS = @CXXFLAGS@
+
+BUILD = @build@
+HOST = @host@
+IS_CROSS_COMPILE = @is_cross_compile@
+
+SYMTABAPI_PLATFORM = @symtabAPI_platform@
+
+XED2_TYPE = @xed2_type@
+

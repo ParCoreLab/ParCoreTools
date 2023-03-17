@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+#  Xed2 install.
+#
+#  $Id$
+#
+
+PKG_NAME=xed2
+
+. ../build-utils/configure.inc
+pre_install
+prefix="$xed2_prefix"
+
+mkdir -p "$prefix" || die "unable to mkdir: $prefix"
+
+# In case of multiple xed directories (x86-64), we take one include
+# subdir and all lib subdirs.
+
+include_done=no
+for dir in extras/xed2-* kits/xed-*
+do
+    cd "$ORIG_PKG_DIR" || die "unable to cd: $ORIG_PKG_DIR"
+    if test -d "$dir" ; then
+	echo "copying files from $dir ..."
+	cd "$dir" || die "unable to cd: $dir"
+	if test "$include_done" = no ; then
+	    tar cf - include | ( cd "$prefix" && tar xvf - )
+	    include_done=yes
+	fi
+	tar cf - lib | ( cd "$prefix" && tar xvf - )
+    fi
+done
+
+# Some libxed.so files are missing world execute permission (yuck).
+chmod -f a+x ${prefix}/lib/lib*.so
+
+post_install

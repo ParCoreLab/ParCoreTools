@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+#  Libunwind configure.
+#
+#  $Id$
+#
+
+PKG_NAME=libunwind
+src=libunwind
+
+. ../build-utils/configure.inc
+pre_configure
+prefix="$libunwind_prefix"
+
+set --  \
+    CC="$CC"  \
+    CFLAGS="$CFLAGS"  \
+    CPPFLAGS="-I$lzma_inc"  \
+    LDFLAGS="-L$lzma_lib"  \
+    LIBS="-llzma"  \
+    --prefix="$prefix"  \
+    --enable-shared  \
+    --enable-static  \
+    --enable-minidebuginfo  \
+    --disable-coredump  \
+    --disable-ptrace  \
+    --disable-setjmp  \
+    --disable-tests  \
+    --disable-documentation  \
+    "$@"
+
+if test -n "$is_cross_compile" ; then
+    set -- --host="$host" "$@"
+fi
+
+make_work_dir
+cd work || die "unable to cd: work"
+
+export LD_LIBRARY_PATH="${lzma_lib}:$LD_LIBRARY_PATH"
+echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
+
+echo configure "$@"
+../${src}/configure "$@"
+test $? -eq 0 || die "configure failed"
+
+post_configure

@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+#  Libmonitor configure.
+#
+#  $Id$
+#
+
+PKG_NAME=libmonitor
+src=libmonitor
+
+client_signals='SIGBUS, SIGSEGV, SIGPROF, 36, 37, 38'
+
+. ../build-utils/configure.inc
+pre_configure
+prefix="$libmonitor_prefix"
+
+# Use the back-end compiler on Blue Gene/Q.
+if test "$libmonitor_use_bgq_backend" = yes ; then
+    CC=powerpc64-bgq-linux-gcc
+    CFLAGS='-g -O2'
+fi
+
+set -- CC="$CC"  \
+    CFLAGS="$CFLAGS"  \
+    --prefix="$prefix"  \
+    --enable-client-signals="$client_signals"  \
+    "$@"
+
+if test -n "${is_cross_compile}" ; then
+    set -- --host="${host}" "$@"
+fi
+
+make_work_dir
+cd work || die "unable to cd: work"
+
+echo configure "$@"
+../${src}/configure "$@"
+test $? -eq 0 || die "configure failed"
+
+post_configure

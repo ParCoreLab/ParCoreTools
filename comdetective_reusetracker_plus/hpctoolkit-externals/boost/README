@@ -1,0 +1,32 @@
+==================
+Boost Build Notes
+==================
+
+Home: http://www.boost.org/
+
+Download: http://www.boost.org/users/history/
+
+License: Boost Software License
+
+./bootstrap.sh
+
+./b2  stage (or install)  \
+    toolset=gcc  \
+    cflags="$CFLAGS"  \
+    cxxflags="$CXXFLAGS"  \
+    variant=release  \
+    link=shared  \
+    threading=multi  \
+    --build-dir="$work_dir"  \
+    --stagedir="$work_dir"  \
+    --with-system  \
+    --with-thread  \
+    ...
+
+Now build libraries for dyninst: atomic, chrono, date_time,
+filesystem, system, thread, timer.
+
+The full boost package is quite large (70 Meg tar file, 540 Meg
+unpacked).  The boost-headers tar file is the original tar file minus
+the doc, libs, status and tools subdirectories.
+

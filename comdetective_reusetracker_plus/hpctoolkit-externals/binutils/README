@@ -1,0 +1,26 @@
+=====================
+Binutils Build Notes
+=====================
+
+Home: https://www.gnu.org/software/binutils/
+
+Download: <GNU mirror>/gnu/gnu/binutils/binutils-2.27.tar.bz2
+
+License: GPL and LGPL
+
+Uses Autoconf and Autogen Makefile template.
+
+for selected subdirs
+  configure ...
+  make
+  make install
+
+Note: we selectively configure and build just what we use, some of the
+other subpackages cause problems.
+
+Note: the binutils-lite tar file is the original tar file minus
+several large directories that we don't use.  This is strictly for
+space in the git repo.  The full tar file would work just as well.
+
+Now using native (unpatched) binutils.
+

@@ -1,0 +1,107 @@
+#!/bin/bash
+
+#LD_LIBRARY_PATH=/home/msasongko17/project/feather-project/adamant-3.0/src /usr/bin/time -f "Elapsed Time , %e, system, %S, user, %U, memory, %M" /home/msasongko17/project/feather-project/hpctoolkit-bin/bin/hpcrun -o test1_output_folder -e WP_COMDETECTIVE -e MEM_UOPS_RETIRED:ALL_LOADS@500000 -e MEM_UOPS_RETIRED:ALL_STORES@500000
+
+adm_libdir='@LIBADM_LIBRARY@'
+
+install_dir='@prefix@'
+
+arg_ok()
+{
+	case "x$1" in
+		x | x-* ) return 1 ;;
+		* ) return 0 ;;
+	esac
+}
+
+period=500000
+error_flag=0
+debug_register_size=4
+bulletin_board_size=127
+object_size_treshold=-1
+output_folder=$(date +%s)"_timestamped_results"
+dump_file=$(echo $$)"_stdout.txt"
+object_flag=0
+while test "x$1" != x
+do
+	arg="$1" ; shift
+	case "$arg" in
+		-p | --period )
+			arg_ok "$1" || die "missing argument for $arg"
+			if ! [[ "$1" =~ ^[0-9]+$ ]]
+			then
+				echo "Sorry period should be integers only"
+				error_flag=1
+			else
+				period=$1
+			fi
+			shift
+			;;
+		-d | --debug-register-size )
+                        arg_ok "$1" || die "missing argument for $arg"
+                        if ! [[ "$1" =~ ^[0-9]+$ ]]
+                        then
+                                echo "Sorry debug register size should be integers only"
+                                error_flag=1
+                        else
+                                debug_register_size=$1
+                        fi
+                        shift
+                        ;;
+		--debug )
+	    		export HPCRUN_WAIT=1
+	    		;;
+		--mapping )
+            		arg_ok "$1" || die "missing argument for $arg"
+            		export HPCRUN_THREAD_MAPPING="$1"
+            		shift
+            		;;
+		-b | --bulletin-board-size )
+                        arg_ok "$1" || die "missing argument for $arg"
+                        if ! [[ "$1" =~ ^[0-9]+$ ]]
+                        then
+                                echo "Sorry bulletin board size should be integers only"
+                                error_flag=1
+                        else
+                                bulletin_board_size=$1
+                        fi
+                        shift
+                        ;;
+		-o | --output )
+            		arg_ok "$1" || die "missing argument for $arg"
+            		output_folder="$1"
+            		shift
+            		;;
+		-t | --object-size-threshold )
+			arg_ok "$1" || die "missing argument for $arg"
+                        if ! [[ "$1" =~ ^[0-9]+$ ]]
+                        then
+                                echo "Sorry object size threshold should be integers only"
+                                error_flag=1
+                        else
+				object_flag=1
+                                object_size_threshold=$1
+                        fi
+                        shift
+                        ;;
+		* )
+			set -- "$arg" "$@"
+			break
+			;;
+	esac
+done
+
+#export LD_LIBRARY_PATH=$adm_libdir:$LD_LIBRARY_PATH
+
+if [ $error_flag -eq 0 ]
+then
+	if [ $object_flag -eq 1 ]
+	then
+		echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$adm_libdir $install_dir/bin/hpcrun -e WP_COMDETECTIVE -e MEM_UOPS_RETIRED:ALL_LOADS@$period -e MEM_UOPS_RETIRED:ALL_STORES@$period --bulletin-board-size $bulletin_board_size --debug-register-size $debug_register_size --object-size-threshold $object_size_threshold $@"
+		LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$adm_libdir $install_dir/bin/hpcrun -o $output_folder -e WP_COMDETECTIVE -e MEM_UOPS_RETIRED:ALL_LOADS@$period -e MEM_UOPS_RETIRED:ALL_STORES@$period --bulletin-board-size $bulletin_board_size --debug-register-size $debug_register_size --object-size-threshold $object_size_threshold $@ 2>&1 | tee $dump_file
+	else
+		LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$adm_libdir $install_dir/bin/hpcrun -o $output_folder -e WP_COMDETECTIVE -e MEM_UOPS_RETIRED:ALL_LOADS@$period -e MEM_UOPS_RETIRED:ALL_STORES@$period --bulletin-board-size $bulletin_board_size --debug-register-size $debug_register_size $@ 2>&1 | tee $dump_file
+	fi
+fi
+
+mv $dump_file $output_folder

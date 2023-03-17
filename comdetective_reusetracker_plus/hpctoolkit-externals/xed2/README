@@ -1,0 +1,18 @@
+=================
+Xed2 Build Notes
+=================
+
+Home: https://software.intel.com/en-us/articles/xed-x86-encoder-decoder-software-library
+
+Old Home: https://software.intel.com/en-us/articles/pintool
+
+License: Intel What If Pre-Release License
+
+As of 2015, XED is now a separate tool, outside of PIN, with a new
+license.  The XED license (not PIN) allows redistributing files listed
+in 'redist.txt' as part of hpctoolkit + externals, and redist.txt
+includes all of XED.
+
+XED is distributed as a binary package.  Tar-copy include and lib
+subdirs to the install directory.
+

@@ -1,0 +1,11 @@
+--- libunwind.ori/src/x86_64/Ginit.c	2022-10-09 17:07:21.393255636 +0300
++++ libunwind/src/x86_64/Ginit.c	2022-10-09 17:08:37.053257966 +0300
+@@ -49,7 +49,7 @@
+ 
+ unw_addr_space_t unw_local_addr_space = &local_addr_space;
+ 
+-HIDDEN unw_dyn_info_list_t _U_dyn_info_list;
++//HIDDEN unw_dyn_info_list_t _U_dyn_info_list;
+ 
+ /* XXX fix me: there is currently no way to locate the dyn-info list
+        by a remote unwinder.  On ia64, this is done via a special
