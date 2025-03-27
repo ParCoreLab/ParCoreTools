@@ -31,9 +31,14 @@ The benchmarks included in ParCoreTools are as follows.
 
 - [reuse-benchs](https://github.com/ParCoreLab/ReuseTracker/tree/master/reuse-invalidation-benchs): A benchmark suite that evaluates the accuracy of reuse distance analyzers.
 
+Published in 
+
+1. M. A. Sasongko, M. Chabbi, P. H. J. Kelly and D. Unat, "Precise Event Sampling on AMD Versus Intel: Quantitative and Qualitative Comparison," in IEEE Transactions on Parallel and Distributed Systems, vol. 34, no. 5, pp. 1594-1608, May 2023, https://doi.org/10.1109/TPDS.2023.3257105.       
+
+2. Sasongko MA, Chabbi M, Kelly PHJ, Unat D. Precise event sampling-based data locality tools for AMD multicore architectures. Concurrency Computat Pract Exper. 2023; 35(24):e7707. https://doi.org/10.1002/cpe.7707
 
 These works are supported by:
 
 1. The Scientific and Technological Research Council of Turkey (TUBITAK), Grant no. 215E193
 2. The Scientific and Technological Research Council of Turkey (TUBITAK), Grant no. 120E492
-3. The Royal Society-Newton Advanced Fellowship
+3. The Royal Society-Newton Advanced Fellowship NAF\R2\202207.
